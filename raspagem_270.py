@@ -36,7 +36,7 @@ breakpoint()
 
 wait = WebDriverWait(navegador, 10)
 
-breakpoint()
+# breakpoint()
 
 # ── Abre programa 311 ─────────────────────────────────────────────────────────
 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#cod_programa')))
@@ -60,24 +60,17 @@ navegador.switch_to.window(navegador.window_handles[-1])
 
 time.sleep(2)
 
-# ── Coleta nomes a partir de tr[3] ignorando cabeçalhos repetidos ─────────────
+# ── Coleta todos os nomes de todas as listas ──────────────────────────────────
+todas_celulas = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]')
+
+ignorar = {"Funcionário", "Mudança de Riscos Ocupacionais", "Monitoração Pontual", "Consulta"}
+
 funcionarios = []
-linha = 3
-
-while True:
-    try:
-        nome = navegador.find_element(
-            By.XPATH, f'//*[@id="rel005"]/table/tbody/tr[{linha}]/td[3]'
-        ).text.strip()
-
-        if nome and nome != "Funcionário":
-            funcionarios.append(nome)
-            print(f"Coletado tr[{linha}]: {nome}")
-
-        linha += 1
-
-    except NoSuchElementException:
-        break
+for celula in todas_celulas:
+    nome = celula.text.strip()
+    if nome and nome not in ignorar:
+        funcionarios.append(nome)
+        print(f"Coletado: {nome}")
 
 # Remove duplicatas mantendo a ordem
 funcionarios = list(dict.fromkeys(funcionarios))
@@ -89,8 +82,18 @@ navegador.switch_to.window(navegador.window_handles[0])
 
 # ── Verifica cada funcionário no programa 229 ─────────────────────────────────
 sem_socged = []
+# teste tratamento de condicao de pular
+# pular_ate = "IRACI MARQUES LIMA"  # Passo 1
+# encontrado = False    
 
 for nome in funcionarios:
+    # if not encontrado:          # ← e esse bloco passo 2
+    #     if nome == pular_ate:
+    #         encontrado = True
+    #     else:
+    #         print(f"Pulando: {nome}")
+    #         continue
+
     try:
         print(f"Verificando: {nome}")
 
@@ -126,11 +129,54 @@ for nome in funcionarios:
             (By.XPATH, '//*[@id="socContent"]/form[1]/table/tbody/tr[2]/td[1]/a')
         )).click()
 
-        wait.until(EC.element_to_be_clickable(
-            (By.XPATH, '//*[@id="tabelaFichas"]/tbody/tr[2]/td[1]/a')
-        )).click()
 
-        time.sleep(2)
+        # iframes = navegador.find_elements(By.TAG_NAME, "iframe")
+        # navegador.switch_to.default_content()
+        # navegador.switch_to.frame(iframes[1])
+
+        # caso apareca um overlay de aniversário, tenta fechar e continuar
+        # try:
+        #     navegador.execute_script("""
+        #         var overlay = document.getElementById('overlay_idaniversario');
+        #         if (overlay) overlay.style.display = 'none';
+        #         var modal = document.getElementById('idaniversario');
+        #         if (modal) modal.style.display = 'none';
+        #     """)
+        #     time.sleep(0.5)
+        # except:
+        #     pass
+
+        # REMOVE ANÚNCIO DE ANIVERSARIANTE
+        # try:
+        #     element = navegador.find_element(By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]')
+        #     navegador.execute_script('arguments[0].click()', element)
+        #     time.sleep(0.5)
+        # except:
+        #     pass
+
+        try:
+            # Localiza o elemento via XPath
+            element = wait.until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]'))
+            )
+            
+            # Executa o clique via JavaScript
+            navegador.execute_script("arguments[0].click();", element)
+            time.sleep(0.5)  # pequena pausa para garantir que a ação foi processada
+
+            print("Clique realizado com sucesso via JS.")
+
+        except Exception as e:
+            print(f"Não foi possível clicar: {e}")
+
+
+            # document.querySelector("#idaniversario > div.modalBotoes > a:nth-child(1)")
+
+            wait.until(EC.element_to_be_clickable(
+                (By.XPATH, '//*[@id="tabelaFichas"]/tbody/tr[2]/td[1]/a')
+            )).click()
+
+        time.sleep(0.5)
 
         # ── Verifica se o botão SOCGED existe ────────────────────────────────
         try:
@@ -150,8 +196,8 @@ for nome in funcionarios:
             print(f"  ✘ SEM SOCGED → {info}")
 
     except TimeoutException:
-        print(f"  ⚠ Timeout: {nome}")
-        sem_socged.append(f"ERRO_TIMEOUT - {nome}")
+            print(f"  ⚠ Timeout: {nome}")
+            sem_socged.append(f"ERRO_TIMEOUT - {nome}")
 
 # ── Salva XML ─────────────────────────────────────────────────────────────────
 raiz = ET.Element("funcionarios_sem_socged")

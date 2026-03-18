@@ -3,6 +3,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 from dotenv import load_dotenv
+import xml.etree.ElementTree as ET
 
 load_dotenv()
 
@@ -27,3 +28,16 @@ def enviar_email_solicitacao(destinatario, assunto, mensagem):
         print("Email enviado com sucesso.")
     except Exception as e:
         print(f"Erro ao enviar email: {e}")
+
+arvore = ET.parse("sem_socged.xml")
+raiz = arvore.getroot()
+
+sem_socged = [filho.text for filho in raiz.findall("funcionario")]
+
+lista_nomes = "\n".join(sem_socged)
+
+enviar_email_solicitacao(
+    destinatario="brunokemel8@gmail.com",
+    assunto="Funcionários sem SOCGED",
+    mensagem=f"Total de funcionários sem SOCGED: {len(sem_socged)}\n\n{lista_nomes}"
+)
