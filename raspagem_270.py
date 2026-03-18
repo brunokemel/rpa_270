@@ -82,18 +82,8 @@ navegador.switch_to.window(navegador.window_handles[0])
 
 # ── Verifica cada funcionário no programa 229 ─────────────────────────────────
 sem_socged = []
-# teste tratamento de condicao de pular
-# pular_ate = "VALDINEIA NEVES PEIXOTO"  # Passo 1
-# encontrado = False    
 
 for nome in funcionarios:
-    # if not encontrado:          # ← e esse bloco passo 2
-    #     if nome == pular_ate:
-    #         encontrado = True
-    #     else:
-    #         print(f"Pulando: {nome}")
-    #         continue
-
     try:
         print(f"Verificando: {nome}")
 

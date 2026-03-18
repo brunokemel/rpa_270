@@ -27,3 +27,18 @@ Este projeto é uma automação em Python usando Selenium para RPA de envio da 2
 - Ajuste os seletores no Selenium conforme a estrutura real do site.
 - Configure as credenciais de email no código.
 - Preencha as informações do banco de dados no `.env`.
+
+
+
+<!-- 
+# teste tratamento de condicao de pular
+# pular_ate = "VALDINEIA NEVES PEIXOTO"  # Passo 1
+# encontrado = False     -->
+
+
+ <!-- # if not encontrado:          # ← e esse bloco passo 2
+    #     if nome == pular_ate:
+    #         encontrado = True
+    #     else:
+    #         print(f"Pulando: {nome}")
+    #         continue -->
