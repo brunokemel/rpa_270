@@ -19,7 +19,7 @@ navegador.get("https://sistema.soc.com.br/WebSoc/")
 
 wait = WebDriverWait(navegador, 5)
 
-# ── Login 
+# ── Login ─────────────────────────────────────────────────────────────────────
 container = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#login > div.pteclado.holder-id > div.input-holder")))
 navegador.execute_script("arguments[0].click();", container)
 
@@ -36,7 +36,9 @@ breakpoint()
 
 wait = WebDriverWait(navegador, 10)
 
-# ── Abre programa 311 e coleta lista de funcionários ─────────────────────────
+breakpoint()
+
+# ── Abre programa 311 ─────────────────────────────────────────────────────────
 wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#cod_programa')))
 navegador.execute_script("document.querySelector('#cod_programa').value = '311';")
 
@@ -52,31 +54,38 @@ navegador.switch_to.frame(iframes[1])
 
 wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="icone"]/a/img'))).click()
 
+# ── Troca para a nova janela com a lista ──────────────────────────────────────
 wait.until(lambda d: len(d.window_handles) > 1)
-abas = navegador.window_handles
-navegador.switch_to.window(abas[1])
-navegador.switch_to.window(abas[0])
+navegador.switch_to.window(navegador.window_handles[-1])
 
-# ── Coleta todos os nomes da tabela rel005 (começa em tr[3]) ──────────────────
-iframes = navegador.find_elements(By.TAG_NAME, "iframe")
-navegador.switch_to.default_content()
-navegador.switch_to.frame(iframes[1])
+time.sleep(2)
 
+# ── Coleta nomes a partir de tr[3] ignorando cabeçalhos repetidos ─────────────
 funcionarios = []
-linha = 3  # começa em tr[3]
+linha = 3
 
 while True:
     try:
-        xpath = f'//*[@id="rel005"]/table/tbody/tr[{linha}]/td[3]'
-        celula = navegador.find_element(By.XPATH, xpath)
-        nome = celula.text.strip()
-        if nome:
-            funcionarios.append(nome)
-        linha += 1
-    except NoSuchElementException:
-        break  # acabou a tabela
+        nome = navegador.find_element(
+            By.XPATH, f'//*[@id="rel005"]/table/tbody/tr[{linha}]/td[3]'
+        ).text.strip()
 
-print(f"Total de funcionários coletados: {len(funcionarios)}")
+        if nome and nome != "Funcionário":
+            funcionarios.append(nome)
+            print(f"Coletado tr[{linha}]: {nome}")
+
+        linha += 1
+
+    except NoSuchElementException:
+        break
+
+# Remove duplicatas mantendo a ordem
+funcionarios = list(dict.fromkeys(funcionarios))
+print(f"\nTotal coletado: {len(funcionarios)}")
+
+# ── Fecha a janela do relatório e volta para a principal ──────────────────────
+navegador.close()
+navegador.switch_to.window(navegador.window_handles[0])
 
 # ── Verifica cada funcionário no programa 229 ─────────────────────────────────
 sem_socged = []
@@ -85,7 +94,6 @@ for nome in funcionarios:
     try:
         print(f"Verificando: {nome}")
 
-        # Navega para o programa 229
         navegador.switch_to.default_content()
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#cod_programa')))
         navegador.execute_script("document.querySelector('#cod_programa').value = '229';")
@@ -124,13 +132,12 @@ for nome in funcionarios:
 
         time.sleep(2)
 
-        # Verifica se o botão SOCGED existe
+        # ── Verifica se o botão SOCGED existe ────────────────────────────────
         try:
             navegador.find_element(By.XPATH, '//*[@id="botoes"]/table/tbody/tr/td[6]/a/img')
             print(f"  ✔ possui SOCGED")
 
         except NoSuchElementException:
-            # Guarda número + nome completo da ficha
             try:
                 info = navegador.find_element(
                     By.XPATH,
