@@ -11,6 +11,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USER = os.getenv('EMAIL_USER')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
+EMAIL_DESTINO = os.getenv('EMAIL_DESTINO')
 
 def enviar_email_solicitacao(destinatario, assunto, mensagem):
     try:
@@ -37,7 +38,7 @@ sem_socged = [filho.text for filho in raiz.findall("funcionario")]
 lista_nomes = "\n".join(sem_socged)
 
 enviar_email_solicitacao(
-    destinatario="brunokemel8@gmail.com",
+    destinatario=EMAIL_DESTINO,
     assunto="Funcionários sem SOCGED",
     mensagem=f"Total de funcionários sem SOCGED: {len(sem_socged)}\n\n{lista_nomes}"
 )

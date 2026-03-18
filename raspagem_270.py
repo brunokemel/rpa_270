@@ -83,7 +83,7 @@ navegador.switch_to.window(navegador.window_handles[0])
 # ── Verifica cada funcionário no programa 229 ─────────────────────────────────
 sem_socged = []
 # teste tratamento de condicao de pular
-# pular_ate = "IRACI MARQUES LIMA"  # Passo 1
+# pular_ate = "VALDINEIA NEVES PEIXOTO"  # Passo 1
 # encontrado = False    
 
 for nome in funcionarios:
@@ -128,31 +128,6 @@ for nome in funcionarios:
         wait.until(EC.element_to_be_clickable(
             (By.XPATH, '//*[@id="socContent"]/form[1]/table/tbody/tr[2]/td[1]/a')
         )).click()
-
-
-        # iframes = navegador.find_elements(By.TAG_NAME, "iframe")
-        # navegador.switch_to.default_content()
-        # navegador.switch_to.frame(iframes[1])
-
-        # caso apareca um overlay de aniversário, tenta fechar e continuar
-        # try:
-        #     navegador.execute_script("""
-        #         var overlay = document.getElementById('overlay_idaniversario');
-        #         if (overlay) overlay.style.display = 'none';
-        #         var modal = document.getElementById('idaniversario');
-        #         if (modal) modal.style.display = 'none';
-        #     """)
-        #     time.sleep(0.5)
-        # except:
-        #     pass
-
-        # REMOVE ANÚNCIO DE ANIVERSARIANTE
-        # try:
-        #     element = navegador.find_element(By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]')
-        #     navegador.execute_script('arguments[0].click()', element)
-        #     time.sleep(0.5)
-        # except:
-        #     pass
 
         try:
             # Localiza o elemento via XPath
