@@ -61,20 +61,35 @@ navegador.switch_to.window(navegador.window_handles[-1])
 time.sleep(2)
 
 # ── Coleta todos os nomes de todas as listas ──────────────────────────────────
-todas_celulas = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]')
+
+todas_nomes = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]')
+tipo_exame = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[8]')
+data_ficha = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[9]')
 
 ignorar = {"Funcionário", "Mudança de Riscos Ocupacionais", "Monitoração Pontual", "Consulta"}
 
+# Monta lista de dicionários com nome, exame e data
 funcionarios = []
-for celula in todas_celulas:
-    nome = celula.text.strip()
-    if nome and nome not in ignorar:
-        funcionarios.append(nome)
-        print(f"Coletado: {nome}")
+for nome, exame, data in zip(todas_nomes, tipo_exame, data_ficha):
+    nome_txt = nome.text.strip()
+    if nome_txt and nome_txt not in ignorar:
+        funcionarios.append({
+            "nome": nome_txt,
+            "exame": exame.text.strip(),
+            "data": data.text.strip()
+        })
+        print(f"Coletado: {nome_txt} | Exame: {exame.text.strip()} | Data: {data.text.strip()}")
 
-# Remove duplicatas mantendo a ordem
-funcionarios = list(dict.fromkeys(funcionarios))
-print(f"\nTotal coletado: {len(funcionarios)}")
+# Remove duplicatas mantendo ordem (pelo nome)
+funcionarios_unicos = []
+vistos = set()
+for f in funcionarios:
+    if f["nome"] not in vistos:
+        funcionarios_unicos.append(f)
+        vistos.add(f["nome"])
+
+print(f"\nTotal coletado: {len(funcionarios_unicos)}")
+
 
 # ── Fecha a janela do relatório e volta para a principal ──────────────────────
 navegador.close()
@@ -83,9 +98,13 @@ navegador.switch_to.window(navegador.window_handles[0])
 # ── Verifica cada funcionário no programa 229 ─────────────────────────────────
 sem_socged = []
 
-for nome in funcionarios:
+for f in funcionarios:   # funcionarios é lista de dicionários: {"nome":..., "exame":..., "data":...}
+    nome = f["nome"]
+    exame = f["exame"]
+    data = f["data"]
+
     try:
-        print(f"Verificando: {nome}")
+        print(f"Verificando: {nome} | Exame: {exame} | Data: {data}")
 
         navegador.switch_to.default_content()
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#cod_programa')))
@@ -106,63 +125,69 @@ for nome in funcionarios:
         campo_nome.clear()
         campo_nome.send_keys(nome)
 
+        # Botão de pesquisa
         wait.until(EC.element_to_be_clickable(
             (By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a')
         )).click()
         time.sleep(0.5)
 
+        # Botão lupa
         wait.until(EC.element_to_be_clickable(
             (By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img')
         )).click()
+        time.sleep(0.5)
 
         wait.until(EC.element_to_be_clickable(
             (By.XPATH, '//*[@id="socContent"]/form[1]/table/tbody/tr[2]/td[1]/a')
         )).click()
+        time.sleep(0.5)
 
+        # Agora percorre todas as linhas da tabela e compara exame + data
+        linhas = navegador.find_elements(By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")
+        clicou = False
+        for linha in linhas:
+            try:
+                data_td = linha.find_element(By.XPATH, "./td[1]").text.strip()
+                exame_td = linha.find_element(By.XPATH, "./td[2]").text.strip()
+
+                if data_td == data and exame_td == exame:
+                    link = linha.find_element(By.XPATH, "./td[1]/a")
+                    navegador.execute_script("arguments[0].click();", link)
+                    clicou = True
+                    print(f"Clique realizado: {nome} | {exame} | {data}")
+                    break
+            except Exception:
+                continue
+            
+        if not clicou:
+            print(f"⚠ Nenhuma ficha encontrada para {nome} | {exame} | {data}")
+            sem_socged.append({"nome": nome, "exame": exame, "data": data})
+            continue
+
+
+        # Fecha overlay de aniversário se aparecer
         try:
-            # Localiza o elemento via XPath
             element = wait.until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]'))
             )
-            
-            # Executa o clique via JavaScript
             navegador.execute_script("arguments[0].click();", element)
-            time.sleep(0.5)  # pequena pausa para garantir que a ação foi processada
-
-            print("Clique realizado com sucesso via JS.")
-
-        except Exception as e:
-            print(f"Não foi possível clicar: {e}")
-
-
-            # document.querySelector("#idaniversario > div.modalBotoes > a:nth-child(1)")
-
-            wait.until(EC.element_to_be_clickable(
-                (By.XPATH, '//*[@id="tabelaFichas"]/tbody/tr[2]/td[1]/a')
-            )).click()
-
-        time.sleep(0.5)
+            time.sleep(0.5)
+            print("Overlay fechado via JS.")
+        except Exception:
+            pass
 
         # ── Verifica se o botão SOCGED existe ────────────────────────────────
         try:
             navegador.find_element(By.XPATH, '//*[@id="botoes"]/table/tbody/tr/td[6]/a/img')
-            print(f"  ✔ possui SOCGED")
-
+            print("  ✔ possui SOCGED")
         except NoSuchElementException:
-            try:
-                info = navegador.find_element(
-                    By.XPATH,
-                    '//*[@id="cad009"]/age_substituir_cabec_log/table[1]/tbody/tr[2]/td/table/tbody/tr[1]/td[2]'
-                ).text.strip()
-            except NoSuchElementException:
-                info = nome
-
-            sem_socged.append(info)
-            print(f"  ✘ SEM SOCGED → {info}")
+            sem_socged.append({"nome": nome, "exame": exame, "data": data})
+            print(f"  ✘ SEM SOCGED → {nome} | {exame} | {data}")
 
     except TimeoutException:
-            print(f"  ⚠ Timeout: {nome}")
-            sem_socged.append(f"ERRO_TIMEOUT - {nome}")
+        print(f"  ⚠ Timeout: {nome}")
+        sem_socged.append({"nome": nome, "exame": exame, "data": data})
+
 
 # ── Salva XML ─────────────────────────────────────────────────────────────────
 raiz = ET.Element("funcionarios_sem_socged")
