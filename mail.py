@@ -14,16 +14,6 @@ EMAIL_USER     = os.getenv('EMAIL_USER')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 EMAIL_DESTINO  = os.getenv('EMAIL_DESTINO')
 
-# ── Parse do XML ──────────────────────────────────────────────────────────────
-# Estrutura real: <funcionarios_sem_socged> > <funcionario>NOME</funcionario>
-arvore = ET.parse("sem_socged.xml")
-raiz   = arvore.getroot()
-
-funcionarios = [f.text.strip() for f in raiz.findall("funcionario") if f.text]
-
-total      = len(funcionarios)
-data_envio = datetime.now().strftime("%d/%m/%Y %H:%M")
-
 # ── Monta linhas da tabela ────────────────────────────────────────────────────
 def gerar_linhas(funcionarios):
     linhas = ""
@@ -37,8 +27,12 @@ def gerar_linhas(funcionarios):
         </tr>"""
     return linhas
 
-# ── Monta HTML completo (sem JS — obrigatório para email) ─────────────────────
-html = f"""
+# ── Monta HTML completo ───────────────────────────────────────────────────────
+def gerar_html(funcionarios):
+    total      = len(funcionarios)
+    data_envio = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    return f"""
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head><meta charset="UTF-8"/></head>
@@ -48,7 +42,6 @@ html = f"""
     <tr><td align="center">
       <table width="640" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
-        <!-- Cabeçalho -->
         <tr>
           <td style="background-color:#334155; padding:28px 40px;">
             <p style="margin:0 0 4px; color:rgba(255,255,255,0.6); font-size:11px; letter-spacing:2px; text-transform:uppercase;">Aviso Interno</p>
@@ -56,7 +49,6 @@ html = f"""
           </td>
         </tr>
 
-        <!-- Corpo -->
         <tr>
           <td style="padding:32px 40px;">
             <p style="margin:0 0 20px; color:#475569; font-size:14px; line-height:1.7;">
@@ -64,14 +56,12 @@ html = f"""
               Os funcionários listados abaixo estão <strong style="color:#334155;">sem SOCGED</strong> registrado. Por favor, providenciem a regularização o quanto antes.
             </p>
 
-            <!-- Badge -->
             <p style="margin:0 0 20px;">
               <span style="display:inline-block; background-color:#f8fafc; color:#64748b; font-size:12px; font-weight:700; padding:6px 14px; border-radius:20px; border:1px solid #e2e8f0;">
                 Total: {total} funcionário(s)
               </span>
             </p>
 
-            <!-- Tabela -->
             <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden;">
               <thead>
                 <tr style="background-color:#f8fafc;">
@@ -90,7 +80,6 @@ html = f"""
           </td>
         </tr>
 
-        <!-- Rodapé -->
         <tr>
           <td style="background-color:#f8fafc; padding:18px 40px; border-top:1px solid #e2e8f0;">
             <p style="margin:0; color:#cbd5e1; font-size:12px; text-align:center;">
@@ -104,8 +93,7 @@ html = f"""
   </table>
 
 </body>
-</html>
-"""
+</html>"""
 
 # ── Envia o email ─────────────────────────────────────────────────────────────
 def enviar_email(destinatario, assunto, html_conteudo):
@@ -121,12 +109,6 @@ def enviar_email(destinatario, assunto, html_conteudo):
         server.login(EMAIL_USER, EMAIL_PASSWORD)
         server.sendmail(EMAIL_USER, destinatario, msg.as_string())
         server.quit()
-        print(f"✅ Email enviado com {total} funcionário(s).")
+        print(f"✅ Email enviado para {destinatario}.")
     except Exception as e:
         print(f"❌ Erro ao enviar email: {e}")
-
-enviar_email(
-    destinatario=EMAIL_DESTINO,
-    assunto=f"⚠️ {total} funcionário(s) sem SOCGED",
-    html_conteudo=html
-)

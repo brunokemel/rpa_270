@@ -1,23 +1,24 @@
 import os
 from dotenv import load_dotenv
-from raspagem_270 import sem_socged
-from email import enviar_email
-
 
 load_dotenv()
 
-SOC_CODE_270 = os.getenv('SOC_CODE_270')
+from raspagem_270 import executar_raspagem
+from mail import enviar_email, gerar_html, EMAIL_DESTINO
 
 def main():
-    tem_exame = sem_socged(SOC_CODE_270)
+    sem_socged = executar_raspagem()
+    total = len(sem_socged)
 
-    if not tem_exame:
-        destinatario = 'responsavel@empresa.com'
-        assunto = 'Solicitação de Imagem do Exame - Código 270'
-        mensagem = f'Prezado,\n\nSolicitamos a imagem do exame para o código {SOC_CODE_270}.\n\nAtenciosamente,\nSistema RPA'
-        enviar_email(destinatario, assunto, mensagem)
+    if total > 0:
+        html = gerar_html(sem_socged)
+        enviar_email(
+            destinatario=EMAIL_DESTINO,
+            assunto=f"⚠️ {total} funcionário(s) sem SOCGED",
+            html_conteudo=html
+        )
     else:
-        print("Exame encontrado no SOC. Prosseguindo com o processamento...")
+        print("✅ Todos os funcionários possuem SOCGED.")
 
 if __name__ == "__main__":
     main()
