@@ -127,25 +127,17 @@ for f in funcionarios:
 
         while not clicou:
             try:
-                campo_nome = wait.until(EC.element_to_be_clickable(
-                    (By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')
-                ))
+                campo_nome = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
                 campo_nome.clear()
                 campo_nome.send_keys(nome)
 
-                wait.until(EC.element_to_be_clickable(
-                    (By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a')
-                )).click()
+                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a'))).click()
 
-                wait.until(EC.element_to_be_clickable(
-                    (By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img')
-                )).click()
+                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img'))).click()
 
                 # Verifica se o índice atual existe
                 try:
-                    link_resultado = wait.until(EC.presence_of_element_located(
-                        (By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a')
-                    ))
+                    link_resultado = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a')))
                 except TimeoutException:
                     print(f"⚠ Sem mais resultados para {nome} (parou em tr[{indice}])")
                     break
@@ -159,7 +151,7 @@ for f in funcionarios:
                     print(f"⚠ tabelaFichas não carregou em tr[{indice}], avançando...")
                     indice += 1
                     navegador.switch_to.default_content()
-                    # Rebusca iframes frescos
+                    # Rebusca iframes
                     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#cod_programa')))
                     navegador.execute_script("document.querySelector('#cod_programa').value = '229';")
                     wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="btn_programa"]'))).click()
@@ -211,9 +203,7 @@ for f in funcionarios:
 
         # Fecha overlay de aniversário se aparecer
         try:
-            element = wait.until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]'))
-            )
+            element = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]')))
             navegador.execute_script("arguments[0].click();", element)
             time.sleep(0.5)
             print("Overlay fechado via JS.")
