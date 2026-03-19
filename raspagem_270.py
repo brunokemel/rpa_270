@@ -9,9 +9,9 @@ import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
 load_dotenv()
-LOGIN = os.getenv("SOC_USERNAME")
+LOGIN    = os.getenv("SOC_USERNAME")
 PASSWORD = os.getenv("SOC_PASSWORD")
-ID_EMP = os.getenv("SOC_EMPSOC_KEY")
+ID_EMP   = os.getenv("SOC_EMPSOC_KEY")
 
 navegador = webdriver.Chrome()
 navegador.maximize_window()
@@ -60,8 +60,8 @@ time.sleep(2)
 
 # ── Coleta todos os nomes de todas as listas ──────────────────────────────────
 todas_nomes = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]')
-tipo_exame = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[8]')
-data_ficha = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[9]')
+tipo_exame  = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[8]')
+data_ficha  = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[9]')
 
 ignorar = {"Funcionário", "Mudança de Riscos Ocupacionais", "Monitoração Pontual", "Consulta"}
 
@@ -95,9 +95,9 @@ sem_socged = []
 # encontrado = False
 
 for f in funcionarios:
-    nome = f["nome"]
+    nome  = f["nome"]
     exame = f["exame"]
-    data = f["data"]
+    data  = f["data"]
 
     # if not encontrado:
     #     if nome == pular_ate:
@@ -123,11 +123,10 @@ for f in funcionarios:
 
         # ── Percorre todos os resultados repesquisando a cada volta ───────────
         clicou = False
-        indice = 2  # começa no tr[2]
+        indice = 2  # tr[2] é o primeiro funcionário na tabela
 
         while not clicou:
             try:
-                # Repesquisa sempre antes de clicar
                 campo_nome = wait.until(EC.element_to_be_clickable(
                     (By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')
                 ))
@@ -137,38 +136,49 @@ for f in funcionarios:
                 wait.until(EC.element_to_be_clickable(
                     (By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a')
                 )).click()
-                # time.sleep(0.5)
 
                 wait.until(EC.element_to_be_clickable(
                     (By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img')
                 )).click()
-                # time.sleep(0.5)
 
                 # Verifica se o índice atual existe
                 try:
-                    link_resultado = navegador.find_element(
-                        By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a'
-                    )
-                except NoSuchElementException:
-                    print(f"⚠ Sem mais resultados para {nome}")
+                    link_resultado = wait.until(EC.presence_of_element_located(
+                        (By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a')
+                    ))
+                except TimeoutException:
+                    print(f"⚠ Sem mais resultados para {nome} (parou em tr[{indice}])")
                     break
 
-                # Clica no resultado atual
                 navegador.execute_script("arguments[0].click();", link_resultado)
-                # time.sleep(0.5)
 
-                # Percorre fichas e compara data + tipo
+                # Aguarda tabela de fichas carregar
+                try:
+                    wait.until(EC.presence_of_element_located((By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")))
+                except TimeoutException:
+                    print(f"⚠ tabelaFichas não carregou em tr[{indice}], avançando...")
+                    indice += 1
+                    navegador.switch_to.default_content()
+                    # Rebusca iframes frescos
+                    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#cod_programa')))
+                    navegador.execute_script("document.querySelector('#cod_programa').value = '229';")
+                    wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="btn_programa"]'))).click()
+                    iframes = navegador.find_elements(By.TAG_NAME, "iframe")
+                    navegador.switch_to.default_content()
+                    navegador.switch_to.frame(iframes[1])
+                    continue
+
                 linhas = navegador.find_elements(By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")
                 for linha in linhas:
                     try:
-                        data_td = linha.find_element(By.XPATH, "./td[1]").text.strip()
+                        data_td  = linha.find_element(By.XPATH, "./td[1]").text.strip()
                         exame_td = linha.find_element(By.XPATH, "./td[2]").text.strip()
 
                         if data_td == data and exame_td == exame:
                             link_ficha = linha.find_element(By.XPATH, "./td[1]/a")
                             navegador.execute_script("arguments[0].click();", link_ficha)
                             clicou = True
-                            print(f"Clique realizado: {nome} | {exame} | {data} | tr[{indice}]")
+                            print(f"✔ Clique realizado: {nome} | {exame} | {data} | tr[{indice}]")
                             break
                     except Exception:
                         continue
@@ -176,25 +186,23 @@ for f in funcionarios:
                 if clicou:
                     break
 
-                # Não achou — volta via btn_programa e troca iframe
-                print(f"Não bateu em tr[{indice}], tentando tr[{indice+1}]...")
+                print(f"Não bateu em tr[{indice}], tentando tr[{indice + 1}]...")
                 indice += 1
 
+                # Volta ao programa 229 com referências frescas
                 navegador.switch_to.default_content()
-                wait.until(EC.element_to_be_clickable(
-                    (By.XPATH, '//*[@id="btn_programa"]')
-                )).click()
-                # time.sleep(0.5)
+                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#cod_programa')))
+                navegador.execute_script("document.querySelector('#cod_programa').value = '229';")
+                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="btn_programa"]'))).click()
 
                 iframes = navegador.find_elements(By.TAG_NAME, "iframe")
                 navegador.switch_to.default_content()
                 navegador.switch_to.frame(iframes[1])
-                # time.sleep(0.5)
 
             except Exception as e:
                 print(f"Erro ao processar resultado tr[{indice}]: {e}")
                 break
-        # ── FIM ───────────────────────────────────────────────────────────────
+        # ── FIM do while ──────────────────────────────────────────────────────
 
         if not clicou:
             print(f"⚠ Nenhuma ficha encontrada para {nome} | {exame} | {data}")
