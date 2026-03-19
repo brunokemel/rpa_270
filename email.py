@@ -13,13 +13,15 @@ EMAIL_USER = os.getenv('EMAIL_USER')
 EMAIL_PASSWORD = os.getenv('EMAIL_PASSWORD')
 EMAIL_DESTINO = os.getenv('EMAIL_DESTINO')
 
-def enviar_email_solicitacao(destinatario, assunto, mensagem):
+def enviar_email_html(destinatario, assunto, html_conteudo):
     try:
-        msg = MIMEMultipart()
+        msg = MIMEMultipart("alternative")
         msg['From'] = EMAIL_USER
         msg['To'] = destinatario
         msg['Subject'] = assunto
-        msg.attach(MIMEText(mensagem, 'plain'))
+
+        # corpo em HTML
+        msg.attach(MIMEText(html_conteudo, 'html'))
 
         server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
         server.starttls()
@@ -30,15 +32,39 @@ def enviar_email_solicitacao(destinatario, assunto, mensagem):
     except Exception as e:
         print(f"Erro ao enviar email: {e}")
 
+# Parse do XML
 arvore = ET.parse("sem_socged.xml")
 raiz = arvore.getroot()
 
-sem_socged = [filho.text for filho in raiz.findall("funcionario")]
+funcionarios = [filho.text for filho in raiz.findall("funcionario")]
 
-lista_nomes = "\n".join(sem_socged)
+# Montar HTML
+html_tabela = """
+<html>
+<head>
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+<body>
+  <h2>Funcionários sem SOCGED</h2>
+  <p>Total: {total}</p>
+  <table>
+    <tr><th>Nome</th></tr>
+    {linhas}
+  </table>
+</body>
+</html>
+""".format(
+    total=len(funcionarios),
+    linhas="".join(f"<tr><td>{nome}</td></tr>" for nome in funcionarios)
+)
 
-enviar_email_solicitacao(
+# Enviar email com HTML
+enviar_email_html(
     destinatario=EMAIL_DESTINO,
     assunto="Funcionários sem SOCGED",
-    mensagem=f"Total de funcionários sem SOCGED: {len(sem_socged)}\n\n{lista_nomes}"
+    html_conteudo=html_tabela
 )
