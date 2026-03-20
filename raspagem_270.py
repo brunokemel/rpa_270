@@ -91,21 +91,12 @@ navegador.switch_to.window(navegador.window_handles[0])
 
 # ── Verifica cada funcionário no programa 229 ─────────────────────────────────
 sem_socged = []
-# pular_ate = "ANA PAULA DA SILVA"
-# encontrado = False
 
 for f in funcionarios:
     nome  = f["nome"]
     exame = f["exame"]
     data  = f["data"]
-
-    # if not encontrado:
-    #     if nome == pular_ate:
-    #         encontrado = True
-    #     else:
-    #         print(f"Pulando: {nome}")
-    #         continue
-
+    
     try:
         print(f"Verificando: {nome} | Exame: {exame} | Data: {data}")
 
