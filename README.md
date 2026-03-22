@@ -1,44 +1,93 @@
-# RPA Envio 270 Cobrança ASO
+# RPA 270 — Cobrança ASO 🤖
 
-Este projeto é uma automação em Python usando Selenium para RPA de envio da 270 de cobrança ASO no sistema SOC.
+Automação em Python com Selenium para envio da **270 de cobrança ASO** no sistema **SOC**.
 
-## Configuração
+O RPA busca os dados de exames no banco de dados MySQL, verifica se estão completos e processa o envio automaticamente. Caso falte alguma informação, envia um e-mail solicitando a imagem do exame.
 
-1. Instale as dependências:
-   ```
-   pip install -r requirements.txt
-   ```
+---
 
-2. Configure o arquivo `.env` com suas credenciais.
+## 📋 Fluxo do RPA
 
-3. Execute o script:
-   ```
-   python main.py
-   ```
+```
+Banco de dados (MySQL)
+        │
+        ▼
+Há dados de exame?
+   ├── NÃO → Envia e-mail solicitando imagem (mail.py)
+   └── SIM → Acessa SOC via Selenium e processa envio (main.py)
+```
 
-## Funcionalidades
+---
 
-- Verifica se há dados de exame no banco de dados.
-- Se não houver, envia email solicitando a imagem do exame.
-- Se houver, acessa o site SOC via Selenium para processar o envio.
+## 🗂️ Estrutura
 
-## Notas
+```
+rpa_270/
+├── main.py              # Orquestrador principal do RPA
+├── raspagem_270.py      # Raspagem/coleta dos dados do provedor
+├── mail.py              # Envio de e-mail quando falta imagem de exame
+├── index.html           # Interface de apoio
+├── db/                  # Módulos de banco de dados (SELECT, INSERT, UPDATE)
+├── teste/               # Scripts de teste
+├── requirements.txt     # Dependências do projeto
+├── anotacoes.md         # Anotações de desenvolvimento
+└── .gitignore
+```
 
-- Ajuste os seletores no Selenium conforme a estrutura real do site.
-- Configure as credenciais de email no código.
-- Preencha as informações do banco de dados no `.env`.
+---
 
+## 🗃️ Tabela no banco
 
+| Campo | Tipo |
+|---|---|
+| Sequencial_fic | INT (PK) |
+| Empresa | TEXT |
+| Exames | TEXT |
+| Funcionario | TEXT |
+| Funcao | TEXT |
+| Turno | VARCHAR(50) |
+| Nascimento | VARCHAR(50) |
+| Admissao | VARCHAR(50) |
+| Tip_exame | TEXT |
+| Dt_ficha | VARCHAR(50) |
+| Prest_de_servi | VARCHAR(50) |
 
-<!-- 
-# teste tratamento de condicao de pular
-# pular_ate = "VALDINEIA NEVES PEIXOTO"  # Passo 1
-# encontrado = False     -->
+---
 
+## ⚙️ Instalação
 
- <!-- # if not encontrado:          # ← e esse bloco passo 2
-    #     if nome == pular_ate:
-    #         encontrado = True
-    #     else:
-    #         print(f"Pulando: {nome}")
-    #         continue -->
+```bash
+pip install -r requirements.txt
+```
+
+Dependências: `selenium`, `webdriver-manager`, `python-dotenv`, `pymysql`
+
+---
+
+## 🔧 Configuração
+
+Crie um arquivo `.env` na raiz com as credenciais:
+
+```env
+DB_HOST=localhost
+DB_NAME=nome_do_banco
+DB_USER=root
+DB_PASSWORD=sua_senha
+
+EMAIL_USER=seu@email.com
+EMAIL_PASSWORD=sua_senha
+```
+
+---
+
+## ▶️ Como rodar
+
+```bash
+python main.py
+```
+
+---
+
+## 🔜 Próxima etapa
+
+Conferência no sistema SOC se cada funcionário está com todos os dados corretos.

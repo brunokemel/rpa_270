@@ -1,4 +1,4 @@
-from db_handler import DBHandler, Ficha
+from db import DBHandler, Ficha
 
 db = DBHandler(
     host="localhost",
