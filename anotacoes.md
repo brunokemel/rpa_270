@@ -12,6 +12,7 @@ Desenvolver RPA de envio da 270 de cobramça ASO
 [] formatar email / padronizar msg de envio
 [] ver regra de negocio 
 [] exportar dados
+[] Main não esta funcionando
 
 0 => False
 1 => True

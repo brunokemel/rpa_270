@@ -58,23 +58,37 @@ navegador.switch_to.window(navegador.window_handles[-1])
 
 time.sleep(2)
 
-# ── Coleta todos os nomes de todas as listas ──────────────────────────────────
-todas_nomes = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]')
+# ── Coleta todos os itens das listas (Empresa, exames, Funciona/Nome, Funcao, Turno, Nascimento, Admissao, Tipo, Dt_ficha e prestador de servico )──────────────────────────────────
+empresa = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[1]')
 tipo_exame  = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[8]')
+todas_nomes = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]') 
+funcao = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[4]')
+turno = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[5]')
+nascimento = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[6]')
+admissao = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[7]')
 data_ficha  = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[9]')
+prestador_de_servico = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[10]')
 
 ignorar = {"Funcionário", "Mudança de Riscos Ocupacionais", "Monitoração Pontual", "Consulta"}
 
 funcionarios = []
-for nome, exame, data in zip(todas_nomes, tipo_exame, data_ficha):
+for nome, exame, data, empresa, funcao, turno, nascimento, admissao, prestador_de_servico in zip(
+    todas_nomes, tipo_exame, data_ficha, empresa, funcao, turno, nascimento, admissao, prestador_de_servico
+    ):
     nome_txt = nome.text.strip()
     if nome_txt and nome_txt not in ignorar:
         funcionarios.append({
             "nome": nome_txt,
             "exame": exame.text.strip(),
-            "data": data.text.strip()
+            "data": data.text.strip(),
+            "empresa": empresa.text.strip(),
+            "funcao": funcao.text.strip(),
+            "turno": turno.text.strip(),
+            "nascimento": nascimento.text.strip(),
+            "admissao": admissao.text.strip(),
+            "prestador_de_servico": prestador_de_servico.text.strip()
         })
-        print(f"Coletado: {nome_txt} | Exame: {exame.text.strip()} | Data: {data.text.strip()}")
+        print(f"Coletado: {nome_txt} | Exame: {exame.text.strip()} | Data: {data.text.strip()} | Empresa: {empresa.text.strip()} | Função: {funcao.text.strip()} | Turno: {turno.text.strip()} | Nascimento: {nascimento.text.strip()} | Admissão: {admissao.text.strip()} | Prestador de Serviço: {prestador_de_servico.text.strip()}")
 
 funcionarios_unicos = []
 vistos = set()
@@ -96,7 +110,7 @@ for f in funcionarios:
     nome  = f["nome"]
     exame = f["exame"]
     data  = f["data"]
-    
+
     try:
         print(f"Verificando: {nome} | Exame: {exame} | Data: {data}")
 
