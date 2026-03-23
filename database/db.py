@@ -24,15 +24,12 @@ class Ficha:
     Tip_exame:        str
     Dt_ficha:         str          # formato esperado: DD/MM/AAAA
     Prest_de_servi:   str
-    Sequencial_ficha: int   # PK, puxado do SOC
+    Sequencial_ficha: Optional[int] = field(default=None)   # preenchido na verificação (229)
+    socged:           Optional[int] = field(default=None)   # 1 = tem | 0 = não tem | None = não verificado
 
     def validar(self) -> list[str]:
         """Retorna lista de erros encontrados. Lista vazia = tudo OK."""
         erros = []
-
-        # Sequencial_ficha obrigatório — vem do SOC
-        if not self.Sequencial_ficha:
-            erros.append("Campo obrigatório vazio: Sequencial_ficha (deve vir do SOC)")
 
         campos_obrigatorios = {
             "Empresa":        self.Empresa,
@@ -43,7 +40,7 @@ class Ficha:
             "Admissao":       self.Admissao,
             "Tip_exame":      self.Tip_exame,
             "Dt_ficha":       self.Dt_ficha,
-            "Prest_de_servi": self.Prest_de_servi,  # FIX: nome correto do campo
+            "Prest_de_servi": self.Prest_de_servi,  
         }
 
         for nome, valor in campos_obrigatorios.items():
@@ -127,9 +124,18 @@ class DBHandler:
         cur.close()
         return resultados
 
-    def buscar_por_id(self, sequencial: int) -> Optional[dict]:
-        """Busca uma ficha pelo Sequencial_ficha."""
+    def buscar_nao_verificados(self) -> List[dict]:
+        """Retorna fichas onde socged ainda é NULL (não verificadas)."""
         cur = self._cursor()
+        cur.execute(f"SELECT * FROM {self.TABELA} WHERE socged =is NULL",)
+        resultados = cur.fetchone()
+        cur.close()
+        return resultados
+    
+
+    def buscar_por_id(self, sequencial: int) -> Optional[dict]:
+        """"Buscar uma ficha pelo Sequencial_ficha."""
+        cur = self.cursor()
         cur.execute(
             f"SELECT * FROM {self.TABELA} WHERE Sequencial_ficha = %s",
             (sequencial,)
@@ -164,8 +170,9 @@ class DBHandler:
     # ── INSERT
     def inserir(self, ficha: Ficha) -> int:
         """
-        Valida e insere uma ficha. Retorna o Sequencial_ficha gerado.
-        Lança ValueError se houver erros de validação.
+        Valida e insere uma ficha vinda da raspagem do 311.
+        Sequencial_ficha e socged ficam NULL — preenchidos depois na verificação.
+        Retorna o id gerado pelo banco.
         """
         erros = ficha.validar()
         if erros:
@@ -174,9 +181,10 @@ class DBHandler:
         sql = f"""
             INSERT INTO {self.TABELA}
                 (Empresa, Exames, Funcionario, Funcao, Turno,
-                 Nascimento, Admissao, Tip_exame, Dt_ficha, Prest_de_servi)
+                 Nascimento, Admissao, Tip_exame, Dt_ficha, Prest_de_servi,
+                 Sequencial_ficha, socged)
             VALUES
-                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, NULL)
         """
         valores = (
             ficha.Empresa, ficha.Exames, ficha.Funcionario, ficha.Funcao,
@@ -188,7 +196,7 @@ class DBHandler:
         self._conn.commit()
         novo_id = cur.lastrowid
         cur.close()
-        print(f"[INSERT] Ficha inserida — Sequencial_ficha: {novo_id}")
+        print(f"[INSERT] {Ficha.Funcionario} — Sequencial_ficha: {novo_id}")
         return novo_id
 
     def inserir_lista(self, fichas: List[Ficha]) -> dict:
@@ -207,12 +215,32 @@ class DBHandler:
 
         print(f"\n[LOTE] Inseridos: {len(inseridos)} | Erros: {len(erros)}")
         return {"inseridos": inseridos, "erros": erros}
+    
+    def atualizar_verificacao(self, id_banco: int, sequencial_ficha: int, socged: int) -> bool:
+        """
+        Chamado pela verificacao_270.py após conferir no 229.
+        Atualiza Sequencial_ficha (coletado ao clicar) e socged (1 ou 0).
+        """
 
-    # ── UPDATE
+        sql = f"""
+            UPDATE {self.TABELA}
+            SET Sequencial_ficha = %s,
+                socged           = %s
+            WHERE Sequencial_fic = %s
+        """
+        cur = self._cursor()
+        cur.execute(sql, (sequencial_ficha, socged, id_banco))
+        self._conn.commit()
+        alterado = cur.rowcount > 0
+        cur.close()
+        status = "✔ tem SOCGED" if socged == 1 else "✘ sem SOCGED"
+        print(f"[UPDATE] id {id_banco} | seq {sequencial_ficha} | {status}")
+        return alterado
+
+    # ── UPDATE geral
     def atualizar(self, ficha: Ficha) -> bool:
         """
-        Atualiza uma ficha existente pelo Sequencial_ficha.
-        Retorna True se algum registro foi alterado.
+        Atualiza uma ficha existente pelo Sequencial_ficha
         """
         if ficha.Sequencial_ficha is None:
             raise ValueError("[UPDATE] Sequencial_ficha é obrigatório para atualizar.")
@@ -250,31 +278,15 @@ class DBHandler:
         return alterado
 
     # ── DELETE
-    # FIX: estava fora da classe (sem indentação)
-    def deletar(self, sequencial: int) -> bool:
-        """Remove uma ficha pelo Sequencial_ficha. Retorna True se deletou."""
+    def deletar(self, id_banco: int) -> bool:
+        """Remove uma ficha pelo id do banco."""
         cur = self._cursor()
         cur.execute(
             f"DELETE FROM {self.TABELA} WHERE Sequencial_ficha = %s",
-            (sequencial,)
+            (id_banco,)
         )
         self._conn.commit()
         deletado = cur.rowcount > 0
         cur.close()
-        print(f"[DELETE] Sequencial_ficha {sequencial} — {'removido' if deletado else 'não encontrado'}")
+        print(f"[DELETE] Sequencial_ficha {id_banco} — {'removido' if deletado else 'não encontrado'}")
         return deletado
-
-    # ── VERIFICAÇÃO
-    # FIX: estava fora da classe (sem indentação)
-    def verificar_funcionario(self, nome: str) -> dict:
-        """
-        Retorna status de verificação de um funcionário.
-        Pronto para ser expandido na próxima fase do RPA.
-        """
-        fichas = self.buscar_por_funcionario(nome)
-        return {
-            "funcionario":  nome,
-            "total_fichas": len(fichas),
-            "fichas":       fichas,
-            "status":       "OK" if fichas else "NÃO ENCONTRADO",
-        }
