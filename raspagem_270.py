@@ -21,7 +21,7 @@ navegador = webdriver.Chrome()
 navegador.maximize_window()
 navegador.get("https://sistema.soc.com.br/WebSoc/")
 
-wait = WebDriverWait(navegador, 5)
+wait = WebDriverWait(navegador, 10)
 
 # ── Login ─────────────────────────────────────────────────────────────────────
 container = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#login > div.pteclado.holder-id > div.input-holder")))
@@ -63,15 +63,15 @@ navegador.switch_to.window(navegador.window_handles[-1])
 time.sleep(2)
 
 # ── Coleta todos os itens das listas (Empresa, exames, Funciona/Nome, Funcao, Turno, Nascimento, Admissao, Tipo, Dt_ficha e prestador de servico )──────────────────────────────────
-empresa = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[1]')
-tipo_exame  = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[8]')
-todas_nomes = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]') 
-funcao = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[4]')
-turno = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[5]')
-nascimento = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[6]')
-admissao = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[7]')
-data_ficha  = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[9]')
-prestador_de_servico = navegador.find_elements(By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[10]')
+empresa = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[1]')))
+tipo_exame  = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[8]')))
+todas_nomes = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]')))
+funcao = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[4]')))
+turno = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[5]')))
+nascimento = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[6]')))
+admissao = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[7]')))
+data_ficha  = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[9]')))
+prestador_de_servico = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[10]')))
 
 ignorar = {"Funcionário", "Mudança de Riscos Ocupacionais", "Monitoração Pontual", "Consulta"}
 
@@ -122,7 +122,7 @@ lista_fichas = [
         Admissao       = f["admissao"],
         Tip_exame      = f["exame"],
         Dt_ficha       = f["data"],
-        Prest_de_servi = f["prestador_de_servico"],
+        Prest_de_servico = f["prestador_de_servico"],
     )
     for f in funcionarios_unicos
 ]

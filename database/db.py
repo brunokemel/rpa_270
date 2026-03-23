@@ -23,7 +23,7 @@ class Ficha:
     Admissao:         str          # formato esperado: DD/MM/AAAA
     Tip_exame:        str
     Dt_ficha:         str          # formato esperado: DD/MM/AAAA
-    Prest_de_servi:   str
+    Prest_de_servico:   str
     Sequencial_ficha: Optional[int] = field(default=None)   # preenchido na verificação (229)
     socged:           Optional[int] = field(default=None)   # 1 = tem | 0 = não tem | None = não verificado
 
@@ -40,7 +40,7 @@ class Ficha:
             "Admissao":       self.Admissao,
             "Tip_exame":      self.Tip_exame,
             "Dt_ficha":       self.Dt_ficha,
-            "Prest_de_servi": self.Prest_de_servi,  
+            "Prest_de_servico": self.Prest_de_servico,  
         }
 
         for nome, valor in campos_obrigatorios.items():
@@ -62,7 +62,7 @@ class Ficha:
             "Nascimento":     self.Nascimento,
             "Admissao":       self.Admissao,
             "Dt_ficha":       self.Dt_ficha,
-            "Prest_de_servi": self.Prest_de_servi,
+            "Prest_de_servico": self.Prest_de_servico,
         }
         for nome, valor in campos_varchar.items():
             if valor and len(str(valor)) > 50:
@@ -127,7 +127,7 @@ class DBHandler:
     def buscar_nao_verificados(self) -> List[dict]:
         """Retorna fichas onde socged ainda é NULL (não verificadas)."""
         cur = self._cursor()
-        cur.execute(f"SELECT * FROM {self.TABELA} WHERE socged =is NULL",)
+        cur.execute(f"SELECT * FROM {self.TABELA} WHERE socged IS NULL",)
         resultados = cur.fetchone()
         cur.close()
         return resultados
@@ -181,7 +181,7 @@ class DBHandler:
         sql = f"""
             INSERT INTO {self.TABELA}
                 (Empresa, Exames, Funcionario, Funcao, Turno,
-                 Nascimento, Admissao, Tip_exame, Dt_ficha, Prest_de_servi,
+                 Nascimento, Admissao, Tip_exame, Dt_ficha, Prest_de_servico,
                  Sequencial_ficha, socged)
             VALUES
                 (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, NULL)
@@ -189,14 +189,14 @@ class DBHandler:
         valores = (
             ficha.Empresa, ficha.Exames, ficha.Funcionario, ficha.Funcao,
             ficha.Turno,   ficha.Nascimento, ficha.Admissao, ficha.Tip_exame,
-            ficha.Dt_ficha, ficha.Prest_de_servi,
+            ficha.Dt_ficha, ficha.Prest_de_servico,
         )
         cur = self._cursor()   # FIX: era self.cursor() sem underscore
         cur.execute(sql, valores)
         self._conn.commit()
         novo_id = cur.lastrowid
         cur.close()
-        print(f"[INSERT] {Ficha.Funcionario} — Sequencial_ficha: {novo_id}")
+        print(f"[INSERT] {ficha.Funcionario} — Sequencial_ficha: {novo_id}")
         return novo_id
 
     def inserir_lista(self, fichas: List[Ficha]) -> dict:
@@ -226,7 +226,7 @@ class DBHandler:
             UPDATE {self.TABELA}
             SET Sequencial_ficha = %s,
                 socged           = %s
-            WHERE Sequencial_fic = %s
+            WHERE Sequencial_ficha = %s
         """
         cur = self._cursor()
         cur.execute(sql, (sequencial_ficha, socged, id_banco))
@@ -261,13 +261,13 @@ class DBHandler:
                 Admissao       = %s,
                 Tip_exame      = %s,
                 Dt_ficha       = %s,
-                Prest_de_servi = %s
+                Prest_de_servico = %s
             WHERE Sequencial_ficha = %s
         """
         valores = (
             ficha.Empresa, ficha.Exames, ficha.Funcionario, ficha.Funcao,
             ficha.Turno,   ficha.Nascimento, ficha.Admissao, ficha.Tip_exame,
-            ficha.Dt_ficha, ficha.Prest_de_servi, ficha.Sequencial_ficha,
+            ficha.Dt_ficha, ficha.Prest_de_servico, ficha.Sequencial_ficha,
         )
         cur = self._cursor()
         cur.execute(sql, valores)
