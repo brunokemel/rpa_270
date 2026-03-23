@@ -23,31 +23,29 @@ class Ficha:
     Admissao:         str          # formato esperado: DD/MM/AAAA
     Tip_exame:        str
     Dt_ficha:         str          # formato esperado: DD/MM/AAAA
-    Prest_de_servico:   str
-    Sequencial_ficha: Optional[int] = field(default=None)   # preenchido na verificação (229)
-    socged:           Optional[int] = field(default=None)   # 1 = tem | 0 = não tem | None = não verificado
+    Prest_de_servico: str
+    Sequencial_ficha: Optional[int] = field(default=None)  # preenchido na verificação (229)
+    socged:           Optional[int] = field(default=None)  # 1 = tem | 0 = não tem | None = não verificado
 
     def validar(self) -> list[str]:
-        """Retorna lista de erros encontrados. Lista vazia = tudo OK."""
         erros = []
 
         campos_obrigatorios = {
-            "Empresa":        self.Empresa,
-            "Exames":         self.Exames,
-            "Funcionario":    self.Funcionario,
-            "Funcao":         self.Funcao,
-            "Nascimento":     self.Nascimento,
-            "Admissao":       self.Admissao,
-            "Tip_exame":      self.Tip_exame,
-            "Dt_ficha":       self.Dt_ficha,
-            "Prest_de_servico": self.Prest_de_servico,  
+            "Empresa":          self.Empresa,
+            "Exames":           self.Exames,
+            "Funcionario":      self.Funcionario,
+            "Funcao":           self.Funcao,
+            "Nascimento":       self.Nascimento,
+            "Admissao":         self.Admissao,
+            "Tip_exame":        self.Tip_exame,
+            "Dt_ficha":         self.Dt_ficha,
+            "Prest_de_servico": self.Prest_de_servico,
         }
 
         for nome, valor in campos_obrigatorios.items():
             if not valor or not str(valor).strip():
                 erros.append(f"Campo obrigatório vazio: {nome}")
 
-        # FIX: variável do loop era 'valo' em vez de 'valor'
         for campo, valor in [("Nascimento", self.Nascimento),
                               ("Admissao",   self.Admissao),
                               ("Dt_ficha",   self.Dt_ficha)]:
@@ -57,11 +55,10 @@ class Ficha:
                 except ValueError:
                     erros.append(f"{campo} com formato inválido: '{valor}' (esperado DD/MM/AAAA)")
 
-        # Validar tamanho VARCHAR(50)
         campos_varchar = {
-            "Nascimento":     self.Nascimento,
-            "Admissao":       self.Admissao,
-            "Dt_ficha":       self.Dt_ficha,
+            "Nascimento":       self.Nascimento,
+            "Admissao":         self.Admissao,
+            "Dt_ficha":         self.Dt_ficha,
             "Prest_de_servico": self.Prest_de_servico,
         }
         for nome, valor in campos_varchar.items():
@@ -71,11 +68,12 @@ class Ficha:
         return erros
 
 
-
+# ──────────────────────────────────────────────
 #  DATABASE HANDLER
+# ──────────────────────────────────────────────
 class DBHandler:
 
-    TABELA = "Tabela_tetes"   # FIX: era 'tabela' minúsculo, padronizado para TABELA
+    TABELA = "Tabela_tetes"
 
     def __init__(self, host: str, database: str, user: str, password: str, port: int = 3306):
         self.config = {
@@ -85,9 +83,9 @@ class DBHandler:
             "password": password,
             "port":     port,
         }
-        self._conn = None   # FIX: era self._conn = self.tabela (string!)
+        self._conn = None
 
-    # conexão 
+    # ── conexão ────────────────────────────────
     def conectar(self):
         try:
             self._conn = mysql.connector.connect(**self.config)
@@ -96,12 +94,11 @@ class DBHandler:
         except Error as e:
             raise ConnectionError(f"[DB] Falha ao conectar: {e}")
 
-    def desconectar(self):   # FIX: era 'deconectar' + lógica completamente errada
+    def desconectar(self):
         if self._conn and self._conn.is_connected():
             self._conn.close()
             print("[DB] Conexão encerrada")
 
-    # FIX: __enter__ e __exit__ ausentes — necessários para 'with db:'
     def __enter__(self):
         self.conectar()
         return self
@@ -109,15 +106,13 @@ class DBHandler:
     def __exit__(self, *_):
         self.desconectar()
 
-    # ── helper interno 
     def _cursor(self):
         if not self._conn or not self._conn.is_connected():
             self.conectar()
         return self._conn.cursor(dictionary=True)
 
-    # ── SELECT
+    # ── SELECT ─────────────────────────────────
     def buscar_todos(self) -> List[dict]:
-        """Retorna todos os registros da tabela."""
         cur = self._cursor()
         cur.execute(f"SELECT * FROM {self.TABELA}")
         resultados = cur.fetchall()
@@ -127,25 +122,12 @@ class DBHandler:
     def buscar_nao_verificados(self) -> List[dict]:
         """Retorna fichas onde socged ainda é NULL (não verificadas)."""
         cur = self._cursor()
-        cur.execute(f"SELECT * FROM {self.TABELA} WHERE socged IS NULL",)
+        cur.execute(f"SELECT * FROM {self.TABELA} WHERE socged IS NULL")
         resultados = cur.fetchall()
         cur.close()
         return resultados
-    
-
-    def buscar_por_id(self, sequencial: int) -> Optional[dict]:
-        """"Buscar uma ficha pelo Sequencial_ficha."""
-        cur = self.cursor()
-        cur.execute(
-            f"SELECT * FROM {self.TABELA} WHERE Sequencial_ficha = %s",
-            (sequencial,)
-        )
-        resultado = cur.fetchone()
-        cur.close()
-        return resultado
 
     def buscar_por_funcionario(self, nome: str) -> List[dict]:
-        """Busca fichas pelo nome do funcionário (busca parcial)."""
         cur = self._cursor()
         cur.execute(
             f"SELECT * FROM {self.TABELA} WHERE Funcionario LIKE %s",
@@ -155,9 +137,7 @@ class DBHandler:
         cur.close()
         return resultados
 
-    # FIX: renomeado de buscar_por_id (duplicado) para buscar_por_empresa
     def buscar_por_empresa(self, empresa: str) -> List[dict]:
-        """Retorna todas as fichas de uma empresa."""
         cur = self._cursor()
         cur.execute(
             f"SELECT * FROM {self.TABELA} WHERE Empresa = %s",
@@ -167,16 +147,15 @@ class DBHandler:
         cur.close()
         return resultados
 
-    # ── INSERT
+    # ── INSERT ─────────────────────────────────
     def inserir(self, ficha: Ficha) -> int:
         """
-        Valida e insere uma ficha vinda da raspagem do 311.
-        Sequencial_ficha e socged ficam NULL — preenchidos depois na verificação.
-        Retorna o id gerado pelo banco.
+        Insere ficha da raspagem do 311.
+        Sequencial_ficha e socged ficam NULL — preenchidos na verificação.
         """
         erros = ficha.validar()
         if erros:
-            raise ValueError(f"[VALIDAÇÃO] Erros encontrados:\n  - " + "\n  - ".join(erros))
+            raise ValueError(f"[VALIDAÇÃO] Erros:\n  - " + "\n  - ".join(erros))
 
         sql = f"""
             INSERT INTO {self.TABELA}
@@ -191,76 +170,72 @@ class DBHandler:
             ficha.Turno,   ficha.Nascimento, ficha.Admissao, ficha.Tip_exame,
             ficha.Dt_ficha, ficha.Prest_de_servico,
         )
-        cur = self._cursor()   # FIX: era self.cursor() sem underscore
+        cur = self._cursor()
         cur.execute(sql, valores)
         self._conn.commit()
         novo_id = cur.lastrowid
         cur.close()
-        print(f"[INSERT] {ficha.Funcionario} — Sequencial_ficha: {novo_id}")
+        print(f"[INSERT] {ficha.Funcionario} inserido")
         return novo_id
 
     def inserir_lista(self, fichas: List[Ficha]) -> dict:
-        """
-        Processa uma lista de fichas do provedor.
-        Retorna relatório: { 'inseridos': [...], 'erros': [...] }
-        """
         inseridos, erros = [], []
-
         for i, ficha in enumerate(fichas):
             try:
                 novo_id = self.inserir(ficha)
                 inseridos.append({"index": i, "funcionario": ficha.Funcionario, "id": novo_id})
             except (ValueError, Error) as e:
                 erros.append({"index": i, "funcionario": ficha.Funcionario, "erro": str(e)})
-
         print(f"\n[LOTE] Inseridos: {len(inseridos)} | Erros: {len(erros)}")
         return {"inseridos": inseridos, "erros": erros}
-    
-    def atualizar_verificacao(self, id_banco: int, sequencial_ficha: int, socged: int) -> bool:
+
+    # ── UPDATE verificação ──────────────────────
+    def atualizar_verificacao(self, funcionario: str, dt_ficha: str, tip_exame: str,
+                               sequencial_ficha: int, socged: int) -> bool:
         """
         Chamado pela verificacao_270.py após conferir no 229.
-        Atualiza Sequencial_ficha (coletado ao clicar) e socged (1 ou 0).
+        Usa Funcionario + Dt_ficha + Tip_exame como chave pois Sequencial_ficha
+        ainda é NULL no banco nesse momento.
+        Salva o Sequencial_ficha coletado na ficha aberta e o resultado do SOCGED (1 ou 0).
         """
-
         sql = f"""
             UPDATE {self.TABELA}
             SET Sequencial_ficha = %s,
                 socged           = %s
-            WHERE Sequencial_ficha = %s
+            WHERE Funcionario = %s
+              AND Dt_ficha    = %s
+              AND Tip_exame   = %s
+              AND socged IS NULL
         """
         cur = self._cursor()
-        cur.execute(sql, (sequencial_ficha, socged, id_banco))
+        cur.execute(sql, (sequencial_ficha, socged, funcionario, dt_ficha, tip_exame))
         self._conn.commit()
         alterado = cur.rowcount > 0
         cur.close()
         status = "✔ tem SOCGED" if socged == 1 else "✘ sem SOCGED"
-        print(f"[UPDATE] id {id_banco} | seq {sequencial_ficha} | {status}")
+        print(f"[UPDATE] {funcionario} | seq {sequencial_ficha} | {status}")
         return alterado
 
-    # ── UPDATE geral
+    # ── UPDATE geral ────────────────────────────
     def atualizar(self, ficha: Ficha) -> bool:
-        """
-        Atualiza uma ficha existente pelo Sequencial_ficha
-        """
         if ficha.Sequencial_ficha is None:
             raise ValueError("[UPDATE] Sequencial_ficha é obrigatório para atualizar.")
 
         erros = ficha.validar()
         if erros:
-            # FIX: raise ValueError sem mensagem não mostrava nada
-            raise ValueError(f"[VALIDAÇÃO] Erros encontrados:\n  - " + "\n  - ".join(erros))
+            raise ValueError(f"[VALIDAÇÃO] Erros:\n  - " + "\n  - ".join(erros))
 
         sql = f"""
             UPDATE {self.TABELA} SET
-                Empresa        = %s,
-                Exames         = %s,
-                Funcionario    = %s,
-                Funcao         = %s,
-                Turno          = %s,
-                Nascimento     = %s,
-                Admissao       = %s,
-                Tip_exame      = %s,
-                Dt_ficha       = %s,
+                Empresa          = %s,
+                Exames           = %s,
+                Funcionario      = %s,
+                Funcao           = %s,
+                Turno            = %s,
+                Nascimento       = %s,
+                Admissao         = %s,
+                Tip_exame        = %s,
+                Dt_ficha         = %s,
                 Prest_de_servico = %s
             WHERE Sequencial_ficha = %s
         """
@@ -274,19 +249,18 @@ class DBHandler:
         self._conn.commit()
         alterado = cur.rowcount > 0
         cur.close()
-        print(f"[UPDATE] Sequencial_ficha {ficha.Sequencial_ficha} — {'atualizado' if alterado else 'não encontrado'}")
+        print(f"[UPDATE] {ficha.Sequencial_ficha} — {'atualizado' if alterado else 'não encontrado'}")
         return alterado
 
-    # ── DELETE
-    def deletar(self, id_banco: int) -> bool:
-        """Remove uma ficha pelo id do banco."""
+    # ── DELETE ──────────────────────────────────
+    def deletar(self, sequencial_ficha: int) -> bool:
         cur = self._cursor()
         cur.execute(
             f"DELETE FROM {self.TABELA} WHERE Sequencial_ficha = %s",
-            (id_banco,)
+            (sequencial_ficha,)
         )
         self._conn.commit()
         deletado = cur.rowcount > 0
         cur.close()
-        print(f"[DELETE] Sequencial_ficha {id_banco} — {'removido' if deletado else 'não encontrado'}")
+        print(f"[DELETE] {sequencial_ficha} — {'removido' if deletado else 'não encontrado'}")
         return deletado
