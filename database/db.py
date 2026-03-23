@@ -128,7 +128,7 @@ class DBHandler:
         """Retorna fichas onde socged ainda é NULL (não verificadas)."""
         cur = self._cursor()
         cur.execute(f"SELECT * FROM {self.TABELA} WHERE socged IS NULL",)
-        resultados = cur.fetchone()
+        resultados = cur.fetchall()
         cur.close()
         return resultados
     
