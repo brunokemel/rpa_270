@@ -60,8 +60,7 @@ wait = WebDriverWait(navegador, 10)
 # ── Processa cada ficha do banco no programa 229 ──────────────────────────────
 sem_socged = []
 
-for ficha in fichas_pendentes:
-    id_banco = ficha["Sequencial_fic"]      # PK do banco
+for ficha in fichas_pendentes:     # PK do banco
     nome     = ficha["Funcionario"]
     exame    = ficha["Tip_exame"].strip()
     data     = ficha["Dt_ficha"].strip()
@@ -142,9 +141,7 @@ for ficha in fichas_pendentes:
 
                             # ── Coleta Sequencial_ficha dentro da ficha aberta ─
                             try:
-                                seq_el = wait.until(EC.presence_of_element_located((
-                                    By.XPATH, '//*[@id="cad009"]/age_substituir_cabec_log/table[1]/tbody/tr[4]/td/table/tbody/tr[2]/td[4]'
-                                )))
+                                seq_el = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="cad009"]/age_substituir_cabec_log//table/tbody/tr[4]/td/table/tbody/tr[2]/td[4]')))
                                 sequencial_ficha = int(seq_el.text.strip())
                                 print(f"  ✔ Dados batem! Sequencial_ficha: {sequencial_ficha}")
                             except Exception as e:
