@@ -19,10 +19,10 @@ class Ficha:
     Funcionario:      str
     Funcao:           str
     Turno:            str
-    Nascimento:       str          # formato esperado: DD/MM/AAAA
-    Admissao:         str          # formato esperado: DD/MM/AAAA
+    Nascimento:       str          # Datas vem DD/MM/AAAA
+    Admissao:         str          
     Tip_exame:        str
-    Dt_ficha:         str          # formato esperado: DD/MM/AAAA
+    Dt_ficha:         str          
     Prest_de_servico: str
     Sequencial_ficha: Optional[int] = field(default=None)  # preenchido na verificação (229)
     socged:           Optional[int] = field(default=None)  # 1 = tem | 0 = não tem | None = não verificado
@@ -126,7 +126,41 @@ class DBHandler:
         resultados = cur.fetchall()
         cur.close()
         return resultados
+    
+    # def buscar_sem_socged(self) -> List[dict]:
+    #     cur = self._cursor()
+    #     sql = f"""
+    #         SELECT id, Funcionario, Tip_exame, Dt_ficha, Empresa, email_sent_at
+    #         FROM {self.TABELA}
+    #         WHERE socged = 0 AND (email_sent_at IS NULL)
+    #     """
+    #     cur.execute(sql)
+    #     resultados = cur.fetchall()
+    #     cur.close()
+    #     return resultados
+    
 
+    def buscar_sem_socged(self) -> List[dict]:
+        """Retorna fichas onde socged = 0 (verificadas mas sem SOCGED)."""
+        cur = self._cursor()
+        sql = f"""
+            SELECT id, Funcionario, Tip_exame, Dt_ficha, Empresa
+            FROM {self.TABELA}
+            WHERE socged = 0
+        """
+        cur.execute(sql)
+        resultados = cur.fetchall()
+        cur.close()
+        return resultados
+
+    from datetime import datetime
+    def marcar_email_enviado(self, registro_id: int):
+        cur = self._cursor()
+        sql = f"UPDATE {self.TABELA} SET email_sent_at = %s WHERE id = %s"
+        cur.execute(sql, (datetime.now(), registro_id))
+        self._conn.commit()
+        cur.close()
+        
     def buscar_por_funcionario(self, nome: str) -> List[dict]:
         cur = self._cursor()
         cur.execute(

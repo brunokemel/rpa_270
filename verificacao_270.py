@@ -89,26 +89,18 @@ for ficha in fichas_pendentes:
         while not clicou:
             try:
                 # ── Pesquisa o nome ───────────────────────────────────────────
-                campo_nome = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input'
-                )))
+                campo_nome = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
                 campo_nome.clear()
                 campo_nome.send_keys(nome)
 
-                wait.until(EC.element_to_be_clickable((
-                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a'
-                ))).click()
+                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a'))).click()
 
-                wait.until(EC.element_to_be_clickable((
-                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img'
-                ))).click()
+                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img'))).click()
 
                 # ── Verifica se o resultado no índice existe ──────────────────
                 # O texto desse link é o Sequencial_ficha — salva antes de clicar
                 try:
-                    link_resultado = wait.until(EC.presence_of_element_located((
-                        By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a'
-                    )))
+                    link_resultado = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a')))
                 except TimeoutException:
                     print(f"  ⚠ Sem mais resultados para {nome} (parou em tr[{indice}])")
                     break
@@ -118,9 +110,7 @@ for ficha in fichas_pendentes:
                 # ── Aguarda tabelaFichas carregar ─────────────────────────────
                 try:
                     wait_long = WebDriverWait(navegador, 20)
-                    wait.until(EC.presence_of_element_located((
-                        By.XPATH, "//*[@id='tabelaFichas']/tbody/tr"
-                    )))
+                    wait.until(EC.presence_of_element_located((By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")))
                 except TimeoutException:
                     print(f"  ⚠ tabelaFichas não carregou em tr[{indice}], avançando...")
                     sequencial_ficha = None
@@ -129,9 +119,7 @@ for ficha in fichas_pendentes:
                     navegador.switch_to.default_content()
                     iframes = wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, "iframe")))
                     navegador.switch_to.frame(iframes[1])
-                    wait.until(EC.presence_of_element_located((
-                        By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input'
-                    )))
+                    wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
                     continue
 
                 # ── Percorre linhas da tabelaFichas e bate data + exame ───────
@@ -153,9 +141,7 @@ for ficha in fichas_pendentes:
 
                             # ── Coleta Sequencial_ficha dentro da ficha aberta ─
                             try:
-                                seq_el = wait.until(EC.presence_of_element_located((
-                                    By.XPATH, '//*[@id="cad009"]/age_substituir_cabec_log//tr[4]/td/table/tbody/tr[2]/td[4]'
-                                )))
+                                seq_el = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="cad009"]/age_substituir_cabec_log//tr[4]/td/table/tbody/tr[2]/td[4]')))
                                 sequencial_ficha = int(seq_el.text.strip())
                                 print(f"  ✔ Dados batem! Sequencial_ficha: {sequencial_ficha}")
                             except Exception as e:
@@ -275,19 +261,19 @@ if resultados_batch:
 navegador.quit()
 
 # ── Salva XML para o mail.py ──────────────────────────────────────────────────
-raiz = ET.Element("funcionarios_sem_socged")
-raiz.set("total", str(len(sem_socged)))
+# raiz = ET.Element("funcionarios_sem_socged")
+# raiz.set("total", str(len(sem_socged)))
 
-for f in sem_socged:
-    filho = ET.SubElement(raiz, "funcionario")
-    filho.set("exame", f.get("exame", ""))
-    filho.set("data",  f.get("data", ""))
-    filho.text = f.get("nome", "")
+# for f in sem_socged:
+#     filho = ET.SubElement(raiz, "funcionario")
+#     filho.set("exame", f.get("exame", ""))
+#     filho.set("data",  f.get("data", ""))
+#     filho.text = f.get("nome", "")
 
-arvore = ET.ElementTree(raiz)
-ET.indent(arvore, space="  ")
-arvore.write("sem_socged.xml", encoding="utf-8", xml_declaration=True)
+# arvore = ET.ElementTree(raiz)
+# ET.indent(arvore, space="  ")
+# arvore.write("sem_socged.xml", encoding="utf-8", xml_declaration=True)
 
-print(f"\n{'─'*50}")
-print(f"Total sem SOCGED: {len(sem_socged)}")
-print("Arquivo 'sem_socged.xml' salvo — pronto para o mail.py")
+# print(f"\n{'─'*50}")
+# print(f"Total sem SOCGED: {len(sem_socged)}")
+# print("Arquivo 'sem_socged.xml' salvo — pronto para o mail.py")
