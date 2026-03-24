@@ -100,15 +100,29 @@ def enviar_email(destinatario, assunto, html_conteudo):
     try:
         msg = MIMEMultipart("alternative")
         msg['From']    = EMAIL_USER
-        msg['To']      = destinatario
+        msg['To']      = EMAIL_DESTINO
         msg['Subject'] = assunto
         msg.attach(MIMEText(html_conteudo, 'html'))
 
         server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
         server.starttls()
         server.login(EMAIL_USER, EMAIL_PASSWORD)
-        server.sendmail(EMAIL_USER, destinatario, msg.as_string())
+        server.sendmail(EMAIL_USER, EMAIL_DESTINO, msg.as_string())
         server.quit()
         print(f"✅ Email enviado para {destinatario}.")
     except Exception as e:
         print(f"❌ Erro ao enviar email: {e}")
+        
+if __name__ == "__main__":
+  try:
+      tree = ET.parse("sem_socged.xml")
+      root = tree.getroot()
+      funcionarios = [f.text for f in root.findall("funcionario")]
+
+      if funcionarios:
+          html_conteudo = gerar_html(funcionarios)
+          enviar_email(EMAIL_DESTINO, "Funcionários sem SOCGED", html_conteudo)
+      else:
+          print("Nenhum funcionário sem SOCGED encontrado no XML.")
+  except Exception as e:
+        print(f"❌ Erro ao preparar email: {e}")

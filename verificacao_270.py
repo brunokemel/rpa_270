@@ -7,7 +7,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from database.db import DBHandler
@@ -138,8 +138,12 @@ for ficha in fichas_pendentes:
                 linhas = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")
 ))
 
-                for linha in linhas:
+                for i in range(len(linhas)):
                     try:
+                        # rebusca a linha a cada iteração para evitar stale
+                        linhas = navegador.find_elements(By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")
+                        linha = linhas[i]
+
                         data_td  = linha.find_element(By.XPATH, "./td[1]").text.strip()
                         exame_td = linha.find_element(By.XPATH, "./td[2]").text.strip()
 
