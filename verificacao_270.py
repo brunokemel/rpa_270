@@ -59,6 +59,8 @@ wait = WebDriverWait(navegador, 10)
 
 # ── Processa cada ficha do banco no programa 229 ──────────────────────────────
 sem_socged = []
+resultados_batch = []
+BATCH_SIZE = 50
 
 for ficha in fichas_pendentes:
     nome     = ficha["Funcionario"]
@@ -187,9 +189,55 @@ for ficha in fichas_pendentes:
         if not clicou:
             print(f"  ⚠ Nenhuma ficha encontrada: {nome} | {exame} | {data}")
             sem_socged.append({"nome": nome, "exame": exame, "data": data})
-            with db:
-                db.atualizar_verificacao(nome, data, exame, 0, socged=0)
+            resultados_batch.append({
+                "nome": nome, "data": data, "exame": exame,
+                "sequencial_ficha": 0, "socged": 0
+            })
             continue
+
+        try:
+            navegador.find_element(By.XPATH, '//*[@id="botoes"]/table/tbody/tr/td[6]/a/img')
+            print(f"  ✔ possui SOCGED")
+            resultados_batch.append({
+                "nome": nome, "data": data, "exame": exame,
+                "sequencial_ficha": sequencial_ficha or 0, "socged": 1
+            })
+        except NoSuchElementException:
+            print(f"  ✘ SEM SOCGED → {nome} | {exame} | {data}")
+            sem_socged.append({"nome": nome, "exame": exame, "data": data})
+            resultados_batch.append({
+                "nome": nome, "data": data, "exame": exame,
+                "sequencial_ficha": sequencial_ficha or 0, "socged": 0
+            })
+
+    except TimeoutException:
+        print(f"  ⚠ Timeout: {nome}")
+        sem_socged.append({"nome": nome, "exame": exame, "data": data})
+        resultados_batch.append({
+            "nome": nome, "data": data, "exame": exame,
+            "sequencial_ficha": 0, "socged": 0
+        })
+
+    # ── Commit em lote ───────────────────────────────────────────────────────
+    if len(resultados_batch) >= BATCH_SIZE:
+        with db:
+            for r in resultados_batch:
+                db.atualizar_verificacao(
+                    r["nome"], r["data"], r["exame"],
+                    r["sequencial_ficha"], socged=r["socged"]
+                )
+        resultados_batch.clear()
+
+# ── Commit final (resto do lote) ─────────────────────────────────────────────
+if resultados_batch:
+    with db:
+        for r in resultados_batch:
+            db.atualizar_verificacao(
+                r["nome"], r["data"], r["exame"],
+                r["sequencial_ficha"], socged=r["socged"]
+            )
+
+
 
         # ── Fecha overlay de aniversário se aparecer ──────────────────────────
         try:
@@ -201,7 +249,6 @@ for ficha in fichas_pendentes:
             print("  Overlay fechado.")
         except Exception:
             pass
-
         # ── Verifica botão SOCGED e atualiza banco ────────────────────────────
         try:
             navegador.find_element(By.XPATH, '//*[@id="botoes"]/table/tbody/tr/td[6]/a/img')
@@ -215,11 +262,11 @@ for ficha in fichas_pendentes:
             with db:
                 db.atualizar_verificacao(nome, data, exame, sequencial_ficha or 0, socged=0)
 
-    except TimeoutException:
-        print(f"  ⚠ Timeout: {nome}")
-        sem_socged.append({"nome": nome, "exame": exame, "data": data})
-        with db:
-            db.atualizar_verificacao(nome, data, exame, 0, socged=0)
+        except TimeoutException:
+            print(f"  ⚠ Timeout: {nome}")
+            sem_socged.append({"nome": nome, "exame": exame, "data": data})
+            with db:
+                db.atualizar_verificacao(nome, data, exame, 0, socged=0)
 
 navegador.quit()
 
