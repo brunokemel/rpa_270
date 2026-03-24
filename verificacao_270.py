@@ -87,26 +87,18 @@ for ficha in fichas_pendentes:     # PK do banco
         while not clicou:
             try:
                 # ── Pesquisa o nome ───────────────────────────────────────────
-                campo_nome = wait.until(EC.element_to_be_clickable((
-                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input'
-                )))
+                campo_nome = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
                 campo_nome.clear()
                 campo_nome.send_keys(nome)
 
-                wait.until(EC.element_to_be_clickable((
-                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a'
-                ))).click()
+                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a'))).click()
 
-                wait.until(EC.element_to_be_clickable((
-                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img'
-                ))).click()
+                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img'))).click()
 
                 # ── Verifica se o resultado no índice existe ──────────────────
                 # O texto desse link é o Sequencial_ficha — salva antes de clicar
                 try:
-                    link_resultado = wait.until(EC.presence_of_element_located((
-                        By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a'
-                    )))
+                    link_resultado = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a')))
                 except TimeoutException:
                     print(f"  ⚠ Sem mais resultados para {nome} (parou em tr[{indice}])")
                     break
@@ -115,17 +107,13 @@ for ficha in fichas_pendentes:     # PK do banco
 
                 # ── Aguarda tabelaFichas carregar ─────────────────────────────
                 try:
-                    wait.until(EC.presence_of_element_located((
-                        By.XPATH, "//*[@id='tabelaFichas']/tbody/tr"
-                    )))
+                    wait.until(EC.presence_of_element_located((By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")))
                 except TimeoutException:
                     print(f"  ⚠ tabelaFichas não carregou em tr[{indice}], avançando...")
                     sequencial_ficha = None
                     indice += 1
                     navegador.back()
-                    wait.until(EC.presence_of_element_located((
-                        By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input'
-                    )))
+                    wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
                     continue
 
                 # ── Percorre linhas da tabelaFichas e bate data + exame ───────
@@ -163,9 +151,7 @@ for ficha in fichas_pendentes:     # PK do banco
 
                 # Volta para a lista de resultados sem recarregar o programa 229
                 navegador.back()
-                wait.until(EC.presence_of_element_located((
-                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input'
-                )))
+                wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
 
             except Exception as e:
                 print(f"  Erro ao processar tr[{indice}]: {e}")
@@ -182,9 +168,7 @@ for ficha in fichas_pendentes:     # PK do banco
 
         # ── Fecha overlay de aniversário se aparecer ──────────────────────────
         try:
-            element = wait.until(EC.presence_of_element_located((
-                By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]'
-            )))
+            element = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]')))
             navegador.execute_script("arguments[0].click();", element)
             time.sleep(0.5)
             print("  Overlay fechado.")
