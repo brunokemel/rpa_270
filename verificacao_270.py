@@ -60,7 +60,7 @@ wait = WebDriverWait(navegador, 10)
 # ── Processa cada ficha do banco no programa 229 ──────────────────────────────
 sem_socged = []
 
-for ficha in fichas_pendentes:     # PK do banco
+for ficha in fichas_pendentes:
     nome     = ficha["Funcionario"]
     exame    = ficha["Tip_exame"].strip()
     data     = ficha["Dt_ficha"].strip()
@@ -87,18 +87,26 @@ for ficha in fichas_pendentes:     # PK do banco
         while not clicou:
             try:
                 # ── Pesquisa o nome ───────────────────────────────────────────
-                campo_nome = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
+                campo_nome = wait.until(EC.element_to_be_clickable((
+                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input'
+                )))
                 campo_nome.clear()
                 campo_nome.send_keys(nome)
 
-                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a'))).click()
+                wait.until(EC.element_to_be_clickable((
+                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a'
+                ))).click()
 
-                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img'))).click()
+                wait.until(EC.element_to_be_clickable((
+                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img'
+                ))).click()
 
                 # ── Verifica se o resultado no índice existe ──────────────────
                 # O texto desse link é o Sequencial_ficha — salva antes de clicar
                 try:
-                    link_resultado = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a')))
+                    link_resultado = wait.until(EC.presence_of_element_located((
+                        By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a'
+                    )))
                 except TimeoutException:
                     print(f"  ⚠ Sem mais resultados para {nome} (parou em tr[{indice}])")
                     break
@@ -107,17 +115,27 @@ for ficha in fichas_pendentes:     # PK do banco
 
                 # ── Aguarda tabelaFichas carregar ─────────────────────────────
                 try:
-                    wait.until(EC.presence_of_element_located((By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")))
+                    wait_long = WebDriverWait(navegador, 20)
+                    wait.until(EC.presence_of_element_located((
+                        By.XPATH, "//*[@id='tabelaFichas']/tbody/tr"
+                    )))
                 except TimeoutException:
                     print(f"  ⚠ tabelaFichas não carregou em tr[{indice}], avançando...")
                     sequencial_ficha = None
                     indice += 1
                     navegador.back()
-                    wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
+                    navegador.switch_to.default_content()
+                    iframes = wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, "iframe")))
+                    navegador.switch_to.frame(iframes[1])
+                    wait.until(EC.presence_of_element_located((
+                        By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input'
+                    )))
                     continue
 
                 # ── Percorre linhas da tabelaFichas e bate data + exame ───────
-                linhas = navegador.find_elements(By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")
+                linhas = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")
+))
+
                 for linha in linhas:
                     try:
                         data_td  = linha.find_element(By.XPATH, "./td[1]").text.strip()
@@ -129,7 +147,9 @@ for ficha in fichas_pendentes:     # PK do banco
 
                             # ── Coleta Sequencial_ficha dentro da ficha aberta ─
                             try:
-                                seq_el = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="cad009"]/age_substituir_cabec_log//table/tbody/tr[4]/td/table/tbody/tr[2]/td[4]')))
+                                seq_el = wait.until(EC.presence_of_element_located((
+                                    By.XPATH, '//*[@id="cad009"]/age_substituir_cabec_log//tr[4]/td/table/tbody/tr[2]/td[4]'
+                                )))
                                 sequencial_ficha = int(seq_el.text.strip())
                                 print(f"  ✔ Dados batem! Sequencial_ficha: {sequencial_ficha}")
                             except Exception as e:
@@ -149,9 +169,14 @@ for ficha in fichas_pendentes:     # PK do banco
                 sequencial_ficha = None
                 indice += 1
 
-                # Volta para a lista de resultados sem recarregar o programa 229
+                # Volta para a lista, reconecta ao iframe e aguarda campo de pesquisa
                 navegador.back()
-                wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
+                navegador.switch_to.default_content()
+                iframes = wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, "iframe")))
+                navegador.switch_to.frame(iframes[1])
+                wait.until(EC.presence_of_element_located((
+                    By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input'
+                )))
 
             except Exception as e:
                 print(f"  Erro ao processar tr[{indice}]: {e}")
@@ -168,7 +193,9 @@ for ficha in fichas_pendentes:     # PK do banco
 
         # ── Fecha overlay de aniversário se aparecer ──────────────────────────
         try:
-            element = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]')))
+            element = wait.until(EC.presence_of_element_located((
+                By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]'
+            )))
             navegador.execute_script("arguments[0].click();", element)
             time.sleep(0.5)
             print("  Overlay fechado.")
