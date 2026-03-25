@@ -62,38 +62,56 @@ navegador.switch_to.window(navegador.window_handles[-1])
 
 time.sleep(2)
 
-# ── Coleta todos os itens das listas (Empresa, exames, Funciona/Nome, Funcao, Turno, Nascimento, Admissao, Tipo, Dt_ficha e prestador de servico )──────────────────────────────────
-empresa = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[1]')))
-tipo_exame  = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[8]')))
-todas_nomes = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]')))
-funcao = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[4]')))
-turno = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[5]')))
-nascimento = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[6]')))
-admissao = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[7]')))
-data_ficha  = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[9]')))
+# ── Coleta todos os itens das listas ─────────────────────────────────────────
+empresa              = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[1]')))
+tipo_exame           = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[8]')))
+todas_nomes          = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[3]')))
+funcao               = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[4]')))
+turno                = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[5]')))
+nascimento           = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[6]')))
+admissao             = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[7]')))
+data_ficha           = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[9]')))
 prestador_de_servico = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//*[@id="rel005"]/table/tbody/tr/td[10]')))
 
 ignorar = {"Funcionário", "Mudança de Riscos Ocupacionais", "Monitoração Pontual", "Consulta"}
 
-funcionarios = []
-for nome, exame, data, emp, func, tur, nasc, adm, prest in zip(
+# ── Barra de coleta ───────────────────────────────────────────────────────────
+funcionarios   = []
+total_linhas   = len(todas_nomes)
+ultima_empresa  = ""
+ultimo_prestador = ""
+
+print("Coletando dados do relatório...")
+for i, (nome, exame, data, emp, func, tur, nasc, adm, prest) in enumerate(zip(
     todas_nomes, tipo_exame, data_ficha, empresa, funcao, turno, nascimento, admissao, prestador_de_servico
-):
-    nome_txt = nome.text.strip()
+), start=1):
+    nome_txt  = nome.text.strip()
+    emp_txt   = emp.text.strip()  or ultima_empresa
+    prest_txt = prest.text.strip() or ultimo_prestador
+
     if nome_txt and nome_txt not in ignorar:
+        ultima_empresa   = emp_txt
+        ultimo_prestador = prest_txt
         funcionarios.append({
             "nome":                 nome_txt,
             "exame":                exame.text.strip(),
             "data":                 data.text.strip(),
-            "empresa":              emp.text.strip(),
+            "empresa":              emp_txt,
             "funcao":               func.text.strip(),
             "turno":                tur.text.strip(),
             "nascimento":           nasc.text.strip(),
             "admissao":             adm.text.strip(),
-            "prestador_de_servico": prest.text.strip(),
+            "prestador_de_servico": prest_txt,
         })
-        print(f"Coletado: {nome_txt} | Exame: {exame.text.strip()} | Data: {data.text.strip()}")
 
+    pct    = (i / total_linhas) * 100
+    blocos = int(pct // 5)
+    barra  = f"[{'█' * blocos}{'░' * (20 - blocos)}] {pct:5.1f}% — {i}/{total_linhas} linhas"
+    print(f"\r{barra}", end="", flush=True)
+
+print(f"\nColetados: {len(funcionarios)} funcionários")
+
+# ── Remove duplicatas por nome ────────────────────────────────────────────────
 vistos = set()
 funcionarios_unicos = []
 for f in funcionarios:
@@ -101,32 +119,31 @@ for f in funcionarios:
         funcionarios_unicos.append(f)
         vistos.add(f["nome"])
 
-print(f"\nTotal coletado: {len(funcionarios_unicos)}")
+print(f"Únicos:    {len(funcionarios_unicos)} funcionários\n")
 
 # ── Fecha a janela do relatório e volta para a principal ──────────────────────
 navegador.close()
 navegador.switch_to.window(navegador.window_handles[0])
 navegador.quit()
 
-# ── Monta lista de Ficha() e insere no banco ──────────────────────────────────
-# Sequencial_ficha = NULL (será preenchido pela verificacao_270.py)
-# socged           = NULL (será preenchido pela verificacao_270.py)
+# ── Monta lista de Ficha() ────────────────────────────────────────────────────
 lista_fichas = [
     Ficha(
-        Empresa        = f["empresa"],
-        Exames         = f["exame"],
-        Funcionario    = f["nome"],
-        Funcao         = f["funcao"],
-        Turno          = f["turno"],
-        Nascimento     = f["nascimento"],
-        Admissao       = f["admissao"],
-        Tip_exame      = f["exame"],
-        Dt_ficha       = f["data"],
+        Empresa          = f["empresa"],
+        Exames           = f["exame"],
+        Funcionario      = f["nome"],
+        Funcao           = f["funcao"],
+        Turno            = f["turno"],
+        Nascimento       = f["nascimento"],
+        Admissao         = f["admissao"],
+        Tip_exame        = f["exame"],
+        Dt_ficha         = f["data"],
         Prest_de_servico = f["prestador_de_servico"],
     )
     for f in funcionarios_unicos
 ]
 
+# ── Insere no banco com barra de progresso ────────────────────────────────────
 db = DBHandler(
     host     = os.getenv("DB_HOST"),
     database = os.getenv("DB_DATABASE"),
@@ -134,13 +151,27 @@ db = DBHandler(
     password = os.getenv("DB_PASSWORD"),
 )
 
-with db:
-    relatorio = db.inserir_lista(lista_fichas)
+total_fichas = len(lista_fichas)
+inseridos, erros = [], []
 
-print(f"\nInseridos: {len(relatorio['inseridos'])} | Erros: {len(relatorio['erros'])}")
-if relatorio["erros"]:
+print("Inserindo no banco...")
+with db:
+    for i, ficha in enumerate(lista_fichas, start=1):
+        try:
+            novo_id = db.inserir(ficha)
+            inseridos.append({"funcionario": ficha.Funcionario, "id": novo_id})
+        except Exception as e:
+            erros.append({"funcionario": ficha.Funcionario, "erro": str(e)})
+
+        pct    = (i / total_fichas) * 100
+        blocos = int(pct // 5)
+        barra  = f"[{'█' * blocos}{'░' * (20 - blocos)}] {pct:5.1f}% — {i}/{total_fichas} fichas"
+        print(f"\r{barra}", end="", flush=True)
+
+print(f"\n\nInseridos: {len(inseridos)} | Ignorados/Erros: {len(erros)}")
+if erros:
     print("Erros:")
-    for e in relatorio["erros"]:
+    for e in erros:
         print(f"  - {e['funcionario']}: {e['erro']}")
 
 print("\nRaspagem concluída. Execute verificacao_270.py para conferir o SOCGED.")

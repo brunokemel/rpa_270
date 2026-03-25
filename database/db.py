@@ -5,6 +5,7 @@ from typing import Optional, List
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 
 load_dotenv()
 
@@ -31,15 +32,9 @@ class Ficha:
         erros = []
 
         campos_obrigatorios = {
-            "Empresa":          self.Empresa,
-            "Exames":           self.Exames,
             "Funcionario":      self.Funcionario,
-            "Funcao":           self.Funcao,
-            "Nascimento":       self.Nascimento,
-            "Admissao":         self.Admissao,
             "Tip_exame":        self.Tip_exame,
             "Dt_ficha":         self.Dt_ficha,
-            "Prest_de_servico": self.Prest_de_servico,
         }
 
         for nome, valor in campos_obrigatorios.items():
@@ -54,16 +49,6 @@ class Ficha:
                     datetime.strptime(valor.strip(), "%d/%m/%Y")
                 except ValueError:
                     erros.append(f"{campo} com formato inválido: '{valor}' (esperado DD/MM/AAAA)")
-
-        campos_varchar = {
-            "Nascimento":       self.Nascimento,
-            "Admissao":         self.Admissao,
-            "Dt_ficha":         self.Dt_ficha,
-            "Prest_de_servico": self.Prest_de_servico,
-        }
-        for nome, valor in campos_varchar.items():
-            if valor and len(str(valor)) > 50:
-                erros.append(f"{nome} excede 50 caracteres (atual: {len(str(valor))})")
 
         return erros
 
@@ -156,7 +141,7 @@ class DBHandler:
     from datetime import datetime
     def marcar_email_enviado(self, registro_id: int):
         cur = self._cursor()
-        sql = f"UPDATE {self.TABELA} SET email_sent_at = %s WHERE id = %s"
+        sql = f"UPDATE {self.TABELA} SET Data_envio_email = %s WHERE id = %s"
         cur.execute(sql, (datetime.now(), registro_id))
         self._conn.commit()
         cur.close()
@@ -192,17 +177,18 @@ class DBHandler:
             raise ValueError(f"[VALIDAÇÃO] Erros:\n  - " + "\n  - ".join(erros))
 
         sql = f"""
-            INSERT INTO {self.TABELA}
+            INSERT IGNORE INTO {self.TABELA}
                 (Empresa, Exames, Funcionario, Funcao, Turno,
                  Nascimento, Admissao, Tip_exame, Dt_ficha, Prest_de_servico,
-                 Sequencial_ficha, socged)
+                 Sequencial_ficha, socged, Data_insert)
             VALUES
-                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, NULL)
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL, NULL, %s)
         """
         valores = (
             ficha.Empresa, ficha.Exames, ficha.Funcionario, ficha.Funcao,
             ficha.Turno,   ficha.Nascimento, ficha.Admissao, ficha.Tip_exame,
             ficha.Dt_ficha, ficha.Prest_de_servico,
+            datetime.now()
         )
         cur = self._cursor()
         cur.execute(sql, valores)
@@ -236,6 +222,7 @@ class DBHandler:
             UPDATE {self.TABELA}
             SET Sequencial_ficha = %s,
                 socged           = %s
+                Data_update      = NOW()
             WHERE Funcionario = %s
               AND Dt_ficha    = %s
               AND Tip_exame   = %s
