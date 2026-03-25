@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import sys
+from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from database.db import DBHandler, Ficha
@@ -112,14 +113,30 @@ for i, (nome, exame, data, emp, func, tur, nasc, adm, prest) in enumerate(zip(
 print(f"\nColetados: {len(funcionarios)} funcionários")
 
 # ── Remove duplicatas por nome ────────────────────────────────────────────────
-vistos = set()
-funcionarios_unicos = []
-for f in funcionarios:
-    if f["nome"] not in vistos:
-        funcionarios_unicos.append(f)
-        vistos.add(f["nome"])
+# vistos = set()
 
-print(f"Únicos:    {len(funcionarios_unicos)} funcionários\n")
+funcionarios_unicos = {}
+def parse_data(txt):
+    try:
+        return datetime.strptime(txt.strip(), "%d/%m/%Y")
+    except ValueError:
+        return datetime.min  # data inválida vai para o fundo
+
+for f in funcionarios:
+    nome       = f["nome"]
+    data_ficha = parse_data(f["data"])
+
+    if nome not in funcionarios_unicos:
+        funcionarios_unicos[nome] = {"ficha": f, "data": data_ficha}
+    else:
+        if data_ficha > funcionarios_unicos[nome]["data"]:
+            funcionarios_unicos[nome] = {"ficha": f, "data": data_ficha}
+
+# ← extrai só o dicionário original, sem o datetime auxiliar
+funcionarios_unicos = [v["ficha"] for v in funcionarios_unicos.values()]
+funcionarios_unicos.sort(key=lambda f: f["nome"])
+
+print(f"Únicos: {len(funcionarios_unicos)} funcionários\n")
 
 # ── Fecha a janela do relatório e volta para a principal ──────────────────────
 navegador.close()
