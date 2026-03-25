@@ -2,17 +2,16 @@ Desenvolver RPA de envio da 270 de cobramça ASO
 
 [x] verificar Get e data de exame
 [x] se n tiver solicitar por email a img do exame
-
-[] adicionar no banco
-[] definir o campo de datas
-[] regras banco de dados
-[] montar tabela de empresas
-[] exporta dados ped. exames
-[] adicionar mais info sobre o prestador
-[] formatar email / padronizar msg de envio
+[x] adicionar no banco
+[x] definir o campo de datas
+[x] regras banco de dados
+[x] montar tabela de empresas
+[x] exporta dados ped. exames
+[x] adicionar mais info sobre o prestador
+[x] formatar email / padronizar msg de envio
 [] ver regra de negocio 
 [] exportar dados
-[] Main não esta funcionando
+[] Main não esta funcionando => (Excluir)
 
 0 => False
 1 => True

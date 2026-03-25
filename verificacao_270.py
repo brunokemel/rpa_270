@@ -259,21 +259,3 @@ if resultados_batch:
                 db.atualizar_verificacao(nome, data, exame, 0, socged=0)
 
 navegador.quit()
-
-# ── Salva XML para o mail.py ──────────────────────────────────────────────────
-# raiz = ET.Element("funcionarios_sem_socged")
-# raiz.set("total", str(len(sem_socged)))
-
-# for f in sem_socged:
-#     filho = ET.SubElement(raiz, "funcionario")
-#     filho.set("exame", f.get("exame", ""))
-#     filho.set("data",  f.get("data", ""))
-#     filho.text = f.get("nome", "")
-
-# arvore = ET.ElementTree(raiz)
-# ET.indent(arvore, space="  ")
-# arvore.write("sem_socged.xml", encoding="utf-8", xml_declaration=True)
-
-# print(f"\n{'─'*50}")
-# print(f"Total sem SOCGED: {len(sem_socged)}")
-# print("Arquivo 'sem_socged.xml' salvo — pronto para o mail.py")

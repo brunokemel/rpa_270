@@ -5,7 +5,6 @@ from typing import Optional, List
 from datetime import datetime
 from dotenv import load_dotenv
 import os
-from datetime import datetime
 
 load_dotenv()
 
@@ -129,7 +128,7 @@ class DBHandler:
         """Retorna fichas onde socged = 0 (verificadas mas sem SOCGED)."""
         cur = self._cursor()
         sql = f"""
-            SELECT id, Funcionario, Tip_exame, Dt_ficha, Empresa
+            SELECT Funcionario, Tip_exame, Dt_ficha, Empresa
             FROM {self.TABELA}
             WHERE socged = 0
         """
@@ -195,7 +194,6 @@ class DBHandler:
         self._conn.commit()
         novo_id = cur.lastrowid
         cur.close()
-        print(f"[INSERT] {ficha.Funcionario} inserido")
         return novo_id
 
     def inserir_lista(self, fichas: List[Ficha]) -> dict:
@@ -206,7 +204,6 @@ class DBHandler:
                 inseridos.append({"index": i, "funcionario": ficha.Funcionario, "id": novo_id})
             except (ValueError, Error) as e:
                 erros.append({"index": i, "funcionario": ficha.Funcionario, "erro": str(e)})
-        print(f"\n[LOTE] Inseridos: {len(inseridos)} | Erros: {len(erros)}")
         return {"inseridos": inseridos, "erros": erros}
 
     # ── UPDATE verificação ──────────────────────
@@ -221,20 +218,19 @@ class DBHandler:
         sql = f"""
             UPDATE {self.TABELA}
             SET Sequencial_ficha = %s,
-                socged           = %s
-                Data_update      = NOW()
+                socged           = %s,
+                Data_update      = %s
             WHERE Funcionario = %s
               AND Dt_ficha    = %s
               AND Tip_exame   = %s
               AND socged IS NULL
         """
         cur = self._cursor()
-        cur.execute(sql, (sequencial_ficha, socged, funcionario, dt_ficha, tip_exame))
+        cur.execute(sql, (sequencial_ficha, socged, datetime.now(), funcionario, dt_ficha, tip_exame))
         self._conn.commit()
         alterado = cur.rowcount > 0
         cur.close()
         status = "✔ tem SOCGED" if socged == 1 else "✘ sem SOCGED"
-        print(f"[UPDATE] {funcionario} | seq {sequencial_ficha} | {status}")
         return alterado
 
     # ── UPDATE geral ────────────────────────────
