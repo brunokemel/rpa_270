@@ -9,7 +9,7 @@ Desenvolver RPA de envio da 270 de cobramça ASO
 [x] exporta dados ped. exames
 [x] adicionar mais info sobre o prestador
 [x] formatar email / padronizar msg de envio
-[x] Main não esta funcionando => (Excluir)
+[x] Main esta funcionando 
 [] ver regra de negocio 
 [] exportar dados
 [] Cruzar dados
