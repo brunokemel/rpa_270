@@ -9,6 +9,7 @@ import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import sys
 from datetime import datetime
+from recapcha import RecaptchaSolver
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from database.db import DBHandler, Ficha
@@ -37,7 +38,21 @@ navegador.execute_script("arguments[0].value = arguments[1];", campo_emp, ID_EMP
 
 wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="bt_entrar"]'))).click()
 
+# try:
+#     WebDriverWait(navegador, 3).until(EC.presence_of_element_located((By.XPATH, '//*[@id="btn_programa"]')))
+# except:
+#     try:
+#         print("Verificando capcha")
+#         recaptchaSolver = RecaptchaSolver(navegador)
+#         t0 = time.time()
+#         recaptchaSolver.solveCaptcha()
+#         print(f"Tempo para resolver o captcha: {time.time() - t0:.2f} segundos")
+#     except Exception as captcha_error:
+#         print( f"Nenhum captcha encontrado ou erro ao resolver: {captcha_error}")
+    
 breakpoint()
+
+# loop for para demais empresas, caso necessário
 
 wait = WebDriverWait(navegador, 10)
 
@@ -54,6 +69,8 @@ wait = WebDriverWait(navegador, 10)
 iframes = navegador.find_elements(By.TAG_NAME, "iframe")
 navegador.switch_to.default_content()
 navegador.switch_to.frame(iframes[1])
+
+# alterar dados anter de gerar a planilha
 
 wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="icone"]/a/img'))).click()
 

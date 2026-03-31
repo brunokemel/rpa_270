@@ -10,6 +10,8 @@ Desenvolver RPA de envio da 270 de cobramça ASO
 [x] adicionar mais info sobre o prestador
 [x] formatar email / padronizar msg de envio
 [x] Main esta funcionando 
+[] Loop de empresas
+[] Especificidades antes de coletar dados 311
 [] ver regra de negocio 
 [] exportar dados
 [] Cruzar dados
