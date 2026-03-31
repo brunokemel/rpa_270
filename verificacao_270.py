@@ -11,6 +11,7 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException,
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from database.db import DBHandler
+import unicodedata
 
 load_dotenv()
 LOGIN    = os.getenv("SOC_USERNAME")
@@ -62,6 +63,12 @@ sem_socged = []
 resultados_batch = []
 BATCH_SIZE = 50
 
+def normaliar_nome(nome: str) -> str:
+    """Remove acentos e normaliza espaços."""
+    nome = unicodedata.normalize("NFKD", nome)
+    nome = nome.encode('ASCII', 'ignore').decode('utf-8')
+    return ''.join(nome.upper().split())
+
 for ficha in fichas_pendentes:
     nome     = ficha["Funcionario"]
     exame    = ficha["Tip_exame"].strip()
@@ -82,49 +89,58 @@ for ficha in fichas_pendentes:
         navegador.switch_to.default_content()
         navegador.switch_to.frame(iframes[1])
 
+         #FAZ A BUSCA UMA SÓ VEZ
+        campo_nome = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
+        campo_nome.clear()
+        campo_nome.send_keys(nome)
+
+        wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a'))).click()
+
+        wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img'))).click()
+
+         #COLETA TODOS OS RESULTADOS DA TABELA DE UMA VEZ
+        try:
+            wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="socContent"]/form[1]/table/tbody/tr[2]/td[1]/a')))
+        except TimeoutException:
+            print(f"Nenhum resultado encontrado para: {nome}")
+            sem_socged.append({"nome": nome, "exame": exame, "data": data, "sequencial_ficha": 0, "socged": 0})
+            continue
+            
+        links_resultado = navegador.find_elements(By.XPATH, '//*[@id="socContent"]/form[1]/table/tbody/tr[position()>=2]/td[1]/a')
+        print(f" -> {len(links_resultado)} resultados encontrados")
+
+        # ITERA PELOS RESULTADOS SEM FAZER BACK REPETIDO
         clicou           = False
-        sequencial_ficha = None
-        indice           = 2    # tr[2] = primeiro funcionário na tabela
+        sequencial_ficha = None # tr[2] = primeiro funcionário na tabela
 
-        while not clicou:
-            try:
-                # ── Pesquisa o nome ───────────────────────────────────────────
-                campo_nome = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
-                campo_nome.clear()
-                campo_nome.send_keys(nome)
+        for idx, link in enumerate(links_resultado):
+            try: 
+                links_resultado = navegador.find_elements(By.XPATH, '//*[@id="socContent"]/form[1]/table/tbody/tr[position()>=2]/td[1]/a')
+                links_resultado[idx]
 
-                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[2]/a'))).click()
-
-                wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/a/img'))).click()
-
-                # ── Verifica se o resultado no índice existe ──────────────────
-                # O texto desse link é o Sequencial_ficha — salva antes de clicar
+                navegador.execute_script("arguments[0].click();", link)
+                 
+                 
+                 #Aguarda tabelaFichas
                 try:
-                    link_resultado = wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@id="socContent"]/form[1]/table/tbody/tr[{indice}]/td[1]/a')))
-                except TimeoutException:
-                    print(f"  ⚠ Sem mais resultados para {nome} (parou em tr[{indice}])")
-                    break
-
-                navegador.execute_script("arguments[0].click();", link_resultado)
-
-                # ── Aguarda tabelaFichas carregar ─────────────────────────────
-                try:
-                    wait_long = WebDriverWait(navegador, 20)
                     wait.until(EC.presence_of_element_located((By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")))
                 except TimeoutException:
-                    print(f"  ⚠ tabelaFichas não carregou em tr[{indice}], avançando...")
-                    sequencial_ficha = None
-                    indice += 1
+                    print(f"  ⚠ tabelaFichas não carregou em tr[{idx + 1}], avançando...")
                     navegador.back()
                     navegador.switch_to.default_content()
-                    iframes = wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, "iframe")))
-                    navegador.switch_to.frame(iframes[1])
-                    wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input')))
+                    iframes= wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, "iframe")))
                     continue
+                #Fecha overlay de aniversário se aparecer
+                try:
+                    overlay = WebDriverWait(navegador, 3).until(EC.presence_of_element_located((By.XPATH, '//*[@id="idaniversario"]/div[1]/a[1]')))
+                    navegador.execute_script("arguments[0].click();", overlay)
+                    time.sleep(0.5)
 
-                # ── Percorre linhas da tabelaFichas e bate data + exame ───────
-                linhas = wait.until(EC.presence_of_all_elements_located((By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")
-))
+                except Exception:
+                    pass
+
+                #Percorre linhas da tabelaFichas 
+                linhas = navegador.find_elements(By.XPATH, "//*[@id='tabelaFichas']/tbody/tr")
 
                 for i in range(len(linhas)):
                     try:
@@ -157,9 +173,8 @@ for ficha in fichas_pendentes:
                     break
 
                 # Dados não bateram — volta e tenta o próximo índice
-                print(f"  Dados não bateram em tr[{indice}], tentando tr[{indice + 1}]...")
+                # print(f"  Dados não bateram em tr[{indice}], tentando tr[{indice + 1}]...")
                 sequencial_ficha = None
-                indice += 1
 
                 # Volta para a lista, reconecta ao iframe e aguarda campo de pesquisa
                 navegador.back()
@@ -170,10 +185,13 @@ for ficha in fichas_pendentes:
                     By.XPATH, '//*[@id="socContent"]/form[1]/fieldset/p[1]/input'
                 )))
 
+            except StaleElementReferenceException:
+                    print(f"  ⚠ StaleElement no resultado {idx + 1}, pulando...")
+                    continue
             except Exception as e:
-                print(f"  Erro ao processar tr[{indice}]: {e}")
+                print(f"  Erro ao processar resultado {idx + 1}: {e}")
                 break
-        # ── FIM do while ──────────────────────────────────────────────────────
+        # ── FIM do while 
 
         # ── Ficha não encontrada ──────────────────────────────────────────────
         if not clicou:
